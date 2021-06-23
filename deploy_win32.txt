@@ -1,0 +1,5 @@
+1° compilar en Qt
+2° open PowerShell:
+	$env:Path += ";C:\Qt\Tools\mingw730_32\bin"
+	cd C:\Qt\5.14.2\mingw73_32\bin
+	.\windeployqt <targetFolder>
