@@ -1,0 +1,3 @@
+PR_serial.c:47:5:serial_write	24	static
+PR_serial.c:14:5:serial_clearScreen	16	static
+PR_serial.c:75:5:serial_read	24	static
