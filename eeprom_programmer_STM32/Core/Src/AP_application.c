@@ -32,8 +32,8 @@ static const uint8_t cmd_endxfer[]   = {0xAA, 0x55, 0xFF};
  */
 
 
-#define SEND(x) do {if((x) != HAL_OK) return 1;} while(0)
-#define RECV(x) do {if((x) != HAL_OK) return 1;} while(0)
+#define SEND(x) do {if((x) != HAL_OK) return HAL_ERROR;} while(0)
+#define RECV(x) do {if((x) != HAL_OK) return HAL_ERROR;} while(0)
 
 typedef struct {
 	uint8_t cmd;
@@ -45,7 +45,7 @@ static int cmdHasData(uint8_t command);
 static int check_start(uint8_t *p);
 static int check_end(uint8_t *p);
 int sendPackage(uint8_t cmd, uint8_t *data, uint16_t len);
-int receivePackage(package_t *pkg);
+HAL_StatusTypeDef receivePackage(package_t *pkg);
 
 enum memtype_e g_memtype = MEMTYPE_NONE;
 uint32_t g_memsize;
@@ -96,16 +96,16 @@ int sendOK(void) {
 	return sendCommand(cmd_ok);
 }
 
-int receivePackage(package_t *pkg){
+HAL_StatusTypeDef receivePackage(package_t *pkg) {
 	uint8_t *buf = recvbuffer;
 
 	if(pkg == NULL)
-		return 1;
+		return HAL_ERROR;
 
 	RECV(serial_read(buf, 4));
 
 	if(check_start(buf) != 0)
-		return 1;
+		return HAL_ERROR;
 
 	pkg->cmd = buf[3];
 	pkg->datalen = cmdHasData(pkg->cmd);
@@ -123,7 +123,7 @@ int receivePackage(package_t *pkg){
 	uint8_t buf2[3];
 	RECV(serial_read(buf2, 3));
 	if(check_end(buf2) != 0)
-		return 1;
+		return HAL_ERROR;
 
 	return HAL_OK;
 }
@@ -172,19 +172,22 @@ int receiveMemory()
 
 void uart_fsm(void)
 {
-	static int st = 0, requested_mem, fails = 0;
+	static int st = 0, requested_mem;
+	static uint32_t retries = 0;
 	static package_t package;
-	int ret;
+	HAL_StatusTypeDef ret;
 
 	switch (st)
 	{
 	case 0:
+		led_off();
 		// try to establish connection with serial port server
 		ret = receivePackage(&package);
 
 		if (ret == HAL_OK) {
 			if(package.cmd == cmd_init) {
 				sendCommand(cmd_init);
+				led_on();
 				st++;
 			}
 		}
@@ -193,13 +196,13 @@ void uart_fsm(void)
 
 		ret = receivePackage(&package);
 		if(ret != HAL_OK) {
-			if(++fails >= 5) {
-				fails = 0;
+			if(++retries >= 5) {
+				retries = 0;
 				st = 0;
 			}
 			break;
 		}
-		fails = 0;
+		retries = 0;
 		st = package.cmd;
 
 		int tmp = st & 0xF0;
@@ -216,7 +219,7 @@ void uart_fsm(void)
 
 	case cmd_readmem16:  // this isn't a state, unless I had used interruptions
 	case cmd_readmemx64:
-		// read memory and sent back the content
+		// read memory and send back the content
 		if(readMemory(membuffer) == HAL_OK) {
 			sendPackage(package.cmd, membuffer, g_memsize);
 		}

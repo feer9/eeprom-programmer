@@ -1,9 +1,5 @@
-core_cm3.h:1876:26:ITM_SendChar	16	static,ignoring_inline_asm
-PR_serial.c:13:5:serial_clearScreen	16	static
-PR_serial.c:18:5:serial_write	24	static
-PR_serial.c:29:5:serial_read	16	static
-PR_serial.c:33:5:serial_print	16	static
-PR_serial.c:37:5:serial_println	24	static
-PR_serial.c:45:5:serial_printnum	56	static
-PR_serial.c:60:5:serial_printnumln	56	static
-PR_serial.c:78:5:_write	32	static
+PR_serial.c:14:5:serial_clearScreen	16	static
+PR_serial.c:38:12:write	24	static
+PR_serial.c:47:5:serial_write	24	static
+PR_serial.c:58:12:read	24	static
+PR_serial.c:75:5:serial_read	32	static

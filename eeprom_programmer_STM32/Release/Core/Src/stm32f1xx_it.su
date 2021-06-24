@@ -7,3 +7,5 @@ stm32f1xx_it.c:145:6:SVC_Handler	0	static
 stm32f1xx_it.c:158:6:DebugMon_Handler	0	static
 stm32f1xx_it.c:171:6:PendSV_Handler	0	static
 stm32f1xx_it.c:184:6:SysTick_Handler	0	static
+stm32f1xx_it.c:205:6:USB_HP_CAN1_TX_IRQHandler	0	static
+stm32f1xx_it.c:219:6:USB_LP_CAN1_RX0_IRQHandler	0	static

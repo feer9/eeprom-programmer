@@ -45,7 +45,7 @@ extern uint32_t g_memsize;
 extern enum memtype_e g_memtype;
 
 extern I2C_HandleTypeDef hi2c2;
-extern UART_HandleTypeDef huart2;
+//extern UART_HandleTypeDef huart2;
 
 extern uint8_t membuffer[];
 extern uint8_t recvbuffer[];
@@ -118,7 +118,15 @@ uint32_t getMemSize(int memtype);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define LED_Pin GPIO_PIN_12
+#define LED_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
+
+#define LED_ON  GPIO_PIN_RESET
+#define LED_OFF GPIO_PIN_SET
+
+#define led_on()  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, LED_ON)
+#define led_off() HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, LED_OFF)
 
 /* USER CODE END Private defines */
 
