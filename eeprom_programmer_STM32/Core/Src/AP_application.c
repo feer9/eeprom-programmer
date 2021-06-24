@@ -31,6 +31,24 @@ static const uint8_t cmd_endxfer[]   = {0xAA, 0x55, 0xFF};
  * <STX><COMMAND>[<DATA><DATA>...]<ETX>
  */
 
+/*
+ * Electrical connections:
+ *
+ * I2C2:
+ * 	 SCL: PB10
+ * 	 SDA: PB11
+ *
+ * EEPROM (DIP-8):
+ * 	 1: GND
+ * 	 2: GND
+ * 	 3: VCC
+ * 	 4: GND
+ * 	 5: SDA
+ * 	 6: SCL
+ * 	 7: GND
+ * 	 8: VCC
+ */
+
 
 #define SEND(x) do {if((x) != HAL_OK) return HAL_ERROR;} while(0)
 #define RECV(x) do {if((x) != HAL_OK) return HAL_ERROR;} while(0)
