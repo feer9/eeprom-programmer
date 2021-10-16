@@ -1,14 +1,14 @@
 QT += core
-QT -= gui
-QT += widgets
+#QT += widgets
 QT += serialport
+QT -= gui
 
 CONFIG += c++17
 CONFIG += console
 CONFIG -= app_bundle
 
 TARGET = eeprom-programmer
-TEMPLATE = app
+#TEMPLATE = app
 
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which as been marked deprecated (the exact warnings
