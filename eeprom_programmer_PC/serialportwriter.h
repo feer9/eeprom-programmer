@@ -16,7 +16,7 @@ class SerialPortWriter : public QObject
 	Q_OBJECT
 public:
 	explicit SerialPortWriter(QSerialPort *serialPort, QObject *parent = nullptr);
-	virtual ~SerialPortWriter() {m_standardOutput << "Datos enviados: "
+	virtual ~SerialPortWriter() {m_standardOutput << "Data sent: "
 												  << enviados << Qt::endl; }
 	void write(const QByteArray &writeData);
 	void write(const char *writeData, qint64 len);

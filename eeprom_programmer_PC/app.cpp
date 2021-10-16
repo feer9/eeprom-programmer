@@ -47,7 +47,7 @@ void App::setCommandLineOptions(QCommandLineParser& parser)
 {
 	App::setApplicationName("EEPROM Tool");
 	App::setApplicationVersion("1.0");
-	parser.setApplicationDescription("Read and write from supported EEPROM memorys.");
+	parser.setApplicationDescription("Read and write from supported EEPROM memories.");
 
 	parser.addHelpOption();
 	parser.addVersionOption();
@@ -93,7 +93,7 @@ bool App::configure() {
 		 return false;
 	}
 	if(args.size() < 1) {
-		m_standardOutput << "Error: you must select the memory target." << Qt::endl;
+		m_standardOutput << "You must select the memory target." << Qt::endl;
 		m_standardOutput << parser.helpText() << Qt::endl;
 		return false;
 	}

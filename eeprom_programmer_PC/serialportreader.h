@@ -21,7 +21,7 @@ protected:
 
 public:
 	SerialPortReader(QSerialPort *serialPort, QObject *parent = nullptr);
-	virtual ~SerialPortReader() {m_standardOutput << "Datos recibidos: "
+	virtual ~SerialPortReader() {m_standardOutput << "Data received: "
 												  << getRecibidos() << Qt::endl; }
 
 	inline qint64 getRecibidos() const {return m_recibidos;}
