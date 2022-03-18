@@ -53,9 +53,10 @@
 /* It's up to user to redefine and/or remove those define */
 #define APP_RX_DATA_SIZE  1000
 #define APP_TX_DATA_SIZE  1000
-// what's the purpose of these buffers???
+// TODO: Are these buffers necessary? can't we use the application buffers?
 
-#define HL_RX_BUFFER_SIZE 256 // Can be larger if desired
+#define HL_RX_BUFFER_SIZE 512 // Can be larger if desired
+ // TODO: figure out the proper size, if any
 /* USER CODE END EXPORTED_DEFINES */
 
 /**

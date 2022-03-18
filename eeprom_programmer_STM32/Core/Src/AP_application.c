@@ -8,28 +8,7 @@
 #include "main.h"
 
 
-static const uint8_t cmd_startxfer[] = {0xFF, 0x55, 0xAA};
-static const uint8_t cmd_endxfer[]   = {0xAA, 0x55, 0xFF};
-#define cmd_init		0x01
-#define cmd_ping		0x02
-#define cmd_disconnect  0xf1
 
-/* read eeprom and send to PC */
-#define cmd_readmem16	(0x40 | MEMTYPE_24LC16)
-#define cmd_readmemx64	(0x40 | MEMTYPE_X24645)
-#define cmd_readmem256	(0x40 | MEMTYPE_24LC256)
-/* get data from pc and write to eeprom */
-#define cmd_writemem16	(0x50 | MEMTYPE_24LC16)
-#define cmd_writememx64	(0x50 | MEMTYPE_X24645)
-#define cmd_writemem256	(0x50 | MEMTYPE_24LC256)
-
-#define cmd_ok			0x10
-#define cmd_err			0xFF
-
-/*
- * PACKAGE STRUCTURE:
- * <STX><COMMAND>[<DATA><DATA>...]<ETX>
- */
 
 /*
  * Electrical connections:
@@ -53,227 +32,266 @@ static const uint8_t cmd_endxfer[]   = {0xAA, 0x55, 0xFF};
 #define SEND(x) do {if((x) != HAL_OK) return HAL_ERROR;} while(0)
 #define RECV(x) do {if((x) != HAL_OK) return HAL_ERROR;} while(0)
 
-typedef struct {
-	uint8_t cmd;
-	uint16_t datalen;
-	uint8_t *data;
-} package_t;
 
 static int cmdHasData(uint8_t command);
-static int check_start(uint8_t *p);
-static int check_end(uint8_t *p);
-int sendPackage(uint8_t cmd, uint8_t *data, uint16_t len);
-HAL_StatusTypeDef receivePackage(package_t *pkg);
 
 enum memtype_e g_memtype = MEMTYPE_NONE;
 uint32_t g_memsize;
 
-uint8_t membuffer[0x2000];
-uint8_t recvbuffer[128];
+//uint8_t membuffer[PACKAGE_SZ];
+uint8_t g_buffer[PKG_DATA_MAX];
 
 
 
 
-
-
-
-
-
-
-
-int sendCommandStart() {
-	return serial_write(cmd_startxfer, 3);
-}
-int sendCommandEnd() {
-	return serial_write(cmd_endxfer, 3);
-}
-
-int sendCommand(uint8_t cmd) {
+HAL_StatusTypeDef sendCommand(uint8_t cmd) {
 	return sendPackage(cmd, NULL, 0);
 }
 
-int sendPackage(uint8_t cmd, uint8_t *data, uint16_t len) {
+HAL_StatusTypeDef sendPackage(uint8_t cmd, uint8_t *data, uint16_t len) {
 
-	SEND(sendCommandStart());
-	SEND(serial_write(&cmd, 1));
+	SEND(serial_writebyte(CMD_STARTXFER));
+	SEND(serial_writebyte(cmd));
 
 	if(data != NULL && len != 0) {
 		SEND(serial_write(data, len));
 	}
 
-	SEND(sendCommandEnd());
+	uint8_t crc[2] = {0,0}; // TODO: crc
+	SEND(serial_write(crc, 2));
 
-	return 0;
+	SEND(serial_writebyte(CMD_ENDXFER));
+
+	return HAL_OK;
 }
 
-int sendErr(uint8_t status) {
-	return sendPackage(cmd_err, &status, 1);
+HAL_StatusTypeDef sendErr(uint8_t status) {
+	return sendPackage(CMD_ERR, &status, 1);
 }
 
-int sendOK(void) {
-	return sendCommand(cmd_ok);
+HAL_StatusTypeDef sendOK(void) {
+	return sendCommand(CMD_OK);
 }
 
 HAL_StatusTypeDef receivePackage(package_t *pkg) {
-	uint8_t *buf = recvbuffer;
+
+	//	<STX><COMMAND>[<DATA><DATA>...]<CHECKSUM[1]><CHECKSUM[0]><ETX>
+	
+	if(!serial_available())
+		return HAL_ERROR;
+
+	uint8_t *buf = g_buffer;
+	uint8_t tmp[3];
 
 	if(pkg == NULL)
 		return HAL_ERROR;
-
-	RECV(serial_read(buf, 4));
-
-	if(check_start(buf) != 0)
-		return HAL_ERROR;
-
-	pkg->cmd = buf[3];
-	pkg->datalen = cmdHasData(pkg->cmd);
+	
+	pkg->cmd = CMD_ERR;
 	pkg->data = NULL;
 
-	if(pkg->datalen != 0) {
+	RECV(serial_read(tmp, 2));
 
-		if((pkg->cmd & 0xF0) == 0x50) // if receiving whole memory
-			buf = membuffer;
+	if(tmp[0] != CMD_STARTXFER)
+		return HAL_ERROR;
 
+	pkg->cmd = tmp[1];
+	pkg->datalen = cmdHasData(pkg->cmd);
+
+	if(pkg->datalen != 0)
+	{
 		RECV(serial_read(buf, pkg->datalen));
 		pkg->data = buf;
 	}
 
-	uint8_t buf2[3];
-	RECV(serial_read(buf2, 3));
-	if(check_end(buf2) != 0)
+	RECV(serial_read(tmp, 3));
+	
+	// TODO: { tmp[1], tmp[0] } is the checksum, we can ignore it...
+	if(tmp[2] != CMD_ENDXFER)
 		return HAL_ERROR;
 
 	return HAL_OK;
 }
 
-int cmdHasData(uint8_t command) {
+int cmdHasData(commands_t command) {
 	switch(command) {
 
-	case cmd_init:
+	case CMD_INIT:  return 0;
+	case CMD_MEMID: return 1;
 
-	case cmd_readmem16:
-	case cmd_readmemx64:
-	case cmd_readmem256: return 0;
+	case CMD_READMEM: return 1; /* contains the memtype_e */
+	case CMD_READNEXT: return 0;
+	case CMD_MEMDATA: return PKG_DATA_MAX;
 
-	case cmd_writemem16: return getMemSize(MEMTYPE_24LC16);
-	case cmd_writememx64: return getMemSize(MEMTYPE_X24645);
-	case cmd_writemem256: return getMemSize(MEMTYPE_24LC256); // will have to split this
+	case CMD_WRITEMEM: return 1;
 
-	case cmd_ok:  return 0;
-	case cmd_err: return 1;
+	case CMD_OK:  return 0;
+	case CMD_ERR: return 1;
 
-	default: return 0;
+	case CMD_NONE:
+	case CMD_PING:
+	case CMD_TXRX_ACK:
+	case CMD_TXRX_DONE:
+	case CMD_TXRX_ERR:
+	case CMD_STARTXFER:
+	case CMD_ENDXFER:
+	case CMD_DISCONNECT:
+		return 0;
+	}
+	return 0;
+}
+
+
+static errorcode_t sendMemoryBlock(uint8_t cmd, uint16_t offset)
+{
+//	package_t pkg;
+	uint8_t *buf = g_buffer;
+
+	if(readMemoryBlock(buf, offset) != HAL_OK) {
+		return ERROR_READMEM;
+	}
+	if(sendPackage(cmd, buf, PKG_DATA_MAX) != HAL_OK) {
+		return ERROR_COMM;
+	}
+	return ERROR_NONE;
+}
+
+static void sendNext(uint16_t mem_idx, int *st) {
+	errorcode_t ret = sendMemoryBlock(CMD_MEMDATA, mem_idx);
+	if (ret == ERROR_NONE) {
+		*st = CMD_READNEXT;
+	}
+	else {
+		sendErr(ret);
+		if (ret == ERROR_COMM)
+			*st = 0;
+		else
+			*st = 1;
 	}
 }
-
-int check_start(uint8_t *p) {
-	return memcmp(p, cmd_startxfer, 3);
-}
-
-int check_end(uint8_t *p) {
-	return memcmp(p, cmd_endxfer, 3);
-}
-
-int sendMemory()
-{
-	return serial_write(membuffer, g_memsize);
-}
-
-int receiveMemory()
-{
-	return serial_read(membuffer, g_memsize);
-}
-
 
 
 /*********************************************************/
 
 void uart_fsm(void)
 {
-	static int st = 0, requested_mem;
-	static uint32_t retries = 0;
-	static package_t package;
+	static int st=0;
+	static uint32_t timeout = TIMEOUT_MS;
+	static uint16_t retries = 0;
+	static package_t package = {0};
+	uint16_t mem_idx = 0;
 	HAL_StatusTypeDef ret;
+
+	if(HAL_GetTick() > timeout) {
+		if(st != 0)
+			sendErr(ERROR_TIMEOUT);
+		st = 0;
+	}
 
 	switch (st)
 	{
-	case 0:
+	case 0: /* disconnected */
 		led_off();
 		// try to establish connection with serial port server
 		ret = receivePackage(&package);
 
 		if (ret == HAL_OK) {
-			if(package.cmd == cmd_init) {
-				sendCommand(cmd_init);
+			if(package.cmd == CMD_INIT) {
+				sendCommand(CMD_INIT);
 				led_on();
 				st++;
+				timeout = HAL_GetTick()+TIMEOUT_MS;
 			}
 		}
 		break;
-	case 1:
 
+	case 1: /* waiting to receive a package */
 		ret = receivePackage(&package);
-		if(ret != HAL_OK) {
-			if(++retries >= 5) {
-				retries = 0;
-				st = 0;
-			}
+		if(ret != HAL_OK)
+			break;
+
+		timeout = HAL_GetTick()+TIMEOUT_MS;
+		st = package.cmd;
+		break;
+
+	case CMD_READMEM:
+		if(package.data[0] != g_memtype) {
+			sendErr(ERROR_MEMID);
+			st = 1;
 			break;
 		}
-		retries = 0;
-		st = package.cmd;
+		mem_idx = 0;
+		timeout = HAL_GetTick()+TIMEOUT_MS;
+		// set state so next time we skip memtype verification
+		st = CMD_TXRX_ACK;
+		// FALLTHROUGH
 
-		int tmp = st & 0xF0;
-		if(tmp == 0x40 || tmp == 0x50) { // if requesting memory w/r
+	case CMD_TXRX_ACK:
+		ret = receivePackage(&package);
+		if(ret != HAL_OK)
+			break;
 
-			requested_mem = st & 0x0F;
-			if(requested_mem != g_memtype) {
-				sendErr(2);
-				st = 1;
-			}
-		}
-
-		break;
-
-	case cmd_readmem16:  // this isn't a state, unless I had used interruptions
-	case cmd_readmemx64:
-		// read memory and send back the content
-		if(readMemory(membuffer) == HAL_OK) {
-			sendPackage(package.cmd, membuffer, g_memsize);
+		if(package.cmd == CMD_READNEXT)
+		{
+			sendNext(mem_idx, &st);
+			retries = 0;
 		}
 		else {
-			sendErr(10);
+			sendErr(ERROR_UNKNOWN);
+			st = 0;
 		}
-		st = 1;
 		break;
 
-	case cmd_readmem256:
-		st = 1;
+	case CMD_READNEXT: /* Chunk of memory sent. Waiting acknowledge */
+		ret = receivePackage(&package);
+		if(ret != HAL_OK)
+			break;
+
+		if(package.cmd == CMD_TXRX_ACK) {
+			// go send next chunk
+			mem_idx += PKG_DATA_MAX;
+			st = CMD_TXRX_ACK;
+		}
+		else if(package.cmd == CMD_TXRX_ERR && retries < RETRIES_MAX) {
+			// resend current chunk
+			sendNext(mem_idx, &st);
+			++retries;
+		}
+		else if(package.cmd == CMD_TXRX_DONE) {
+			st = 1;
+		}
+		else {
+			// something went wrong
+			if(retries >= RETRIES_MAX)
+				sendErr(ERROR_MAX_RETRY);
+		//	sendCommand(CMD_DISCONNECT);
+			st = 0;
+		}
+
+		timeout = HAL_GetTick()+TIMEOUT_MS;
 		break;
 
-	case cmd_writemem16:
-	case cmd_writememx64:
+/*
+	case CMD_WRITEMEM:
+		requested_mem = st & 0x0F;
+		if(requested_mem != g_memtype) {
+			sendErr(2);
+			st = 1;
+		}
+
 		// write to eeprom the content received
-		if(saveMemory(package.data) != HAL_OK) {
-			sendErr(st);
-		}
-		else {
-			sendOK();
-		}
+		saveMemory(package.data);
+
+		st = 1;
+		break;
+*/
+
+	case CMD_PING:
+		sendCommand(CMD_TXRX_ACK);
+		timeout = HAL_GetTick()+TIMEOUT_MS;
 		st = 1;
 		break;
 
-	case cmd_writemem256:
-		st = 1;
-		break;
-
-
-	case cmd_ping:
-		sendPackage(cmd_ping, NULL,0);
-		st = 1;
-		break;
-
-	case cmd_disconnect:
+	case CMD_DISCONNECT:
 		st = 0;
 		break;
 
@@ -282,6 +300,78 @@ void uart_fsm(void)
 		break;
 	}
 }
+
+
+
+
+
+
+/*HAL_StatusTypeDef sendMemory()
+{
+	uint8_t cmd = CMD_READMEM|g_memtype;
+	uint32_t offset;
+
+	for(offset=0; offset<g_memsize; offset+=MAX_PKG_SZ)
+	{
+		int retry = 5, status = HAL_ERROR;
+		while(retry-- && status != HAL_OK) {
+			status = trySend(cmd, offset);
+		}
+		if(status != HAL_OK) {
+			// they didn't receive it
+			return HAL_ERROR;
+		}
+	}
+
+	return HAL_OK;
+}*/
+
+/*
+HAL_StatusTypeDef sendMemory(uint8_t cmd)
+{
+	int offset, retry;
+	package_t pkg;
+
+	for(offset=0; offset<g_memsize; offset+=MAX_PKG_SZ) {
+
+		retry = 5;
+		while(retry--) {
+
+			if(readMemoryBlock(g_buffer, offset) != HAL_OK) {
+				sendErr(10);
+				return HAL_ERROR;
+			}
+			if(sendBlock(cmd, g_buffer) != HAL_OK) {
+				sendErr(11);
+				return HAL_ERROR;
+			}
+			if(receivePackage(&pkg) != HAL_OK) {
+				return HAL_ERROR;
+			}
+			if(pkg.cmd == CMD_TXRX_OK) {
+				// block successfully received
+				break; // while()
+			}
+		}
+		if(pkg.cmd != CMD_TXRX_OK) { // didn't receive it
+			return HAL_ERROR;
+		}
+	}
+
+	return HAL_OK;
+}
+ **/
+
+/*
+HAL_StatusTypeDef receiveMemory()
+{
+	return serial_read(membuffer, g_memsize);
+}*/
+
+
+
+
+
 
 
 

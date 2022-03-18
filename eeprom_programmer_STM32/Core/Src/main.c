@@ -104,10 +104,10 @@ int main(void)
   //  read_test();
   while (1)
   {
+    uart_fsm();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    uart_fsm();
   }
   /* USER CODE END 3 */
 }

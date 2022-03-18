@@ -9,23 +9,18 @@
 
 
 
+int readMemoryBlock(uint8_t *buffer, uint16_t offset)
+{
+	return EEPROM_read(g_memtype, buffer, offset, PKG_DATA_MAX);
+}
+
 int readMemory(uint8_t *buffer)
 {
-	if(g_memtype== MEMTYPE_24LC16) {
-		return MEM24LC16_read(buffer, 0, g_memsize);
-	}
-	else if(g_memtype == MEMTYPE_X24645) {
-		return MEMX24645_read(buffer, 0, g_memsize);
-	}
-	return -1;
+	return EEPROM_read(g_memtype, buffer, 0, g_memsize);
 }
 
 int saveMemory(const uint8_t *data)
 {
-	if(g_memtype == MEMTYPE_24LC16)
-		return MEM24LC16_write(data, 0, g_memsize);
-	else if(g_memtype == MEMTYPE_X24645)
-		return MEMX24645_write(data, 0, g_memsize);
-	return -1;
+	return EEPROM_write(g_memtype, data, 0, g_memsize);
 }
 

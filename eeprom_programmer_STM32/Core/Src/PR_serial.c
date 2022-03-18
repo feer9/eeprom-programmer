@@ -16,24 +16,7 @@ int serial_clearScreen(void) {
 	return serial_write(clearScreen, sizeof clearScreen);
 }
 
-#if 0 // UART
-
-int serial_write(const uint8_t *data, uint16_t len) {
-	uint8_t retries = 5;
-	int ret = 1;
-
-	while(retries-- && ret != HAL_OK) {
-		ret = HAL_UART_Transmit(&huart2, (uint8_t *) data, len, 1000) ;
-	}
-
-	return ret;
-}
-
-int serial_read(uint8_t *data, uint16_t len) {
-	return HAL_UART_Receive(&huart2, data, len, 1000) ;
-}
-
-#else // USB CDC
+#if 1 // USB-CDC
 
 static int write(const uint8_t *data, uint16_t sz)
 {
@@ -53,6 +36,16 @@ int serial_write(const uint8_t *data, uint16_t len)
 		ret = write(data, len);
 
 	return ret;
+}
+
+int serial_writebyte(uint8_t byte)
+{
+	return serial_write(&byte, 1);
+}
+
+
+bool serial_available(void) {
+	return CDC_GetRxBufferBytesAvailable_FS() > 0;
 }
 
 static int read(uint8_t *buf, uint16_t sz)
@@ -79,7 +72,8 @@ int serial_read(uint8_t *buffer, uint16_t len)
 
 	while(bytesRemaining > 0 && (HAL_GetTick()-tstart) < 1000)
 	{
-		uint16_t bytesToRead = bytesRemaining > HL_RX_BUFFER_SIZE ? HL_RX_BUFFER_SIZE : bytesRemaining;
+		uint16_t bytesToRead = bytesRemaining > HL_RX_BUFFER_SIZE ?
+				HL_RX_BUFFER_SIZE : bytesRemaining;
 
 		uint16_t bytesReaded = read(buffer, bytesToRead);
 
@@ -93,10 +87,28 @@ int serial_read(uint8_t *buffer, uint16_t len)
 	return HAL_OK;
 }
 
-#endif
+int serial_readbyte(uint8_t *byte)
+{
+	return serial_read(byte, 1);
+}
 
+#else // UART
 
-#if 0
+int serial_write(const uint8_t *data, uint16_t len) {
+	uint8_t retries = 5;
+	int ret = 1;
+
+	while(retries-- && ret != HAL_OK) {
+		ret = HAL_UART_Transmit(&huart2, (uint8_t *) data, len, 1000) ;
+	}
+
+	return ret;
+}
+
+int serial_read(uint8_t *data, uint16_t len) {
+	return HAL_UART_Receive(&huart2, data, len, 1000) ;
+}
+
 int serial_print(const char *s) {
 	return (int) HAL_UART_Transmit(&huart2, (uint8_t *) s, strlen(s), 100);
 }
@@ -139,7 +151,7 @@ int serial_printnumln(const char *s, int num) {
 	}
 	return err;
 }
-#endif
+#endif // USB-CDC / UART
 
 #if 0
 // doesn't work :(
