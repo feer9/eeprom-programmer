@@ -10,7 +10,7 @@
 #ifdef _WIN32
 #define SERIALPORTNAME "COM0"
 #else
-#define SERIALPORTNAME "ttyUSB0"
+#define SERIALPORTNAME "ttyACM0"
 #endif
 
 
@@ -62,7 +62,6 @@ private:
 signals:
 
 public slots:
-
 	void handlePackageReceived(package_t *pkg);
 	void handlePackageSent(commands_e);
 	void handleRxTimedOut(void);

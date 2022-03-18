@@ -22,15 +22,6 @@ void MemoryComm::setSignals()
 	connect(&m_serialPortReader, &SerialPortReader::timeout,
 						   this, &MemoryComm::handleRxTimedOut);
 
-//	connect(&m_serialPortReader, &SerialPortReader::crcError,
-//						   this, &MemoryComm::handleRxCrcError);
-
-//	connect(&m_serialPortReader, &SerialPortReader::targetReportsRxStatus,
-//			&m_serialPortWriter, &SerialPortWriter::handleTargetReportRxStatus);
-
-//	connect(&m_serialPortReader, &SerialPortReader::rxInProgress,
-//			&m_serialPortWriter, &SerialPortWriter::sendRxAck);
-
 	connect(&m_serialPortWriter, &SerialPortWriter::txXferComplete,
 						   this, &MemoryComm::handleTxXferComplete);
 
@@ -52,9 +43,13 @@ void MemoryComm::setSerialPortOptions(SerialPortOptions& op)
 MemoryComm::~MemoryComm()
 {
 	if(m_serialPort.isOpen()) {
+		qDebug() <<  "SerialPort connected. Sending CMD_DISCONNECT...";
 		sendCommand(CMD_DISCONNECT);
 		m_serialPort.waitForBytesWritten(500);
 		m_serialPort.close();
+	}
+	else {
+		qDebug() << "SerialPort not connected.";
 	}
 }
 

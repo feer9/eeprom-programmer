@@ -21,7 +21,7 @@ void SerialPortWriter::setSignals()
 	connect(m_serialPort, &QSerialPort::errorOccurred,
 			this, &SerialPortWriter::handleError);
 	connect(&m_timer, &QTimer::timeout,
-			this, &SerialPortWriter::handleTimeout);
+			this, &SerialPortWriter::handleTimeout); // is this being used?
 }
 
 void SerialPortWriter::handleTimeout()
@@ -116,17 +116,7 @@ qint64 SerialPortWriter::write()
 						 << Qt::endl;
 	}
 	else {
-	//	m_packageBytesWritten = bytesWritten;
-	//	m_totalBytesSent += bytesWritten;
-
-	//	if(bytesWritten != m_package.size()) {
-			m_timer.start(2000+m_package.size()); /* internal timer for LOCAL timeout */
-	//		qDebug() << "Started to send some data...";
-	//	}
-	//	else {
-	//		qDebug() << "Data sent in one chunk!";
-	//		emit packageSent(m_cmd);
-	//	}
+		m_timer.start(2000+m_package.size()); /* internal timer for LOCAL timeout */
 	}
 	return bytesWritten;
 }

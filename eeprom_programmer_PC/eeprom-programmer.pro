@@ -21,6 +21,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 # Disable debug messages for release builds
 # evaluate only when "release" is defined of the two options "debug" and "release"
 CONFIG(release, debug|release):DEFINES += QT_NO_DEBUG_OUTPUT
+DEFINES += QT_NO_DEBUG_OUTPUT
 
 # You can also make your code fail to compile if you use deprecated APIs.
 # In order to do so, uncomment the following line.
@@ -38,7 +39,8 @@ SOURCES += \
 	eeprom.cpp \
 	serialportreader.cpp \
 	serialportwriter.cpp \
-	memorycomm.cpp
+	memorycomm.cpp \
+	sigwatch.cpp
 
 HEADERS += \
 	app.h \
@@ -46,7 +48,8 @@ HEADERS += \
 	eeprom.h \
 	serialportreader.h \
 	serialportwriter.h \
-	memorycomm.h
+	memorycomm.h \
+	sigwatch.h
 
 
 # Default rules for deployment.

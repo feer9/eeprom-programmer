@@ -3,10 +3,10 @@
 
 SerialPortReader::SerialPortReader(QSerialPort *serialPort,
 								   FILE* outStream,
-								   QObject *parent) :
-	QObject(parent),
-	m_serialPort(serialPort),
-	m_standardOutput(outStream)
+								   QObject *parent)
+	: QObject(parent)
+	, m_serialPort(serialPort)
+	, m_standardOutput(outStream)
 {
 	connect(m_serialPort, &QSerialPort::readyRead,
 			this, &SerialPortReader::handleReadyRead);
@@ -17,7 +17,6 @@ SerialPortReader::SerialPortReader(QSerialPort *serialPort,
 
 	m_readData.reserve(10000);
 	m_timer.setSingleShot(true);
-//	m_timer.start(5000);
 }
 
 void SerialPortReader::clearBuffer() {
