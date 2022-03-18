@@ -13,6 +13,13 @@ void App::handleTimeout(void) {
 	reconnect();
 }
 
+void App::pingTimerLoop(void) {
+	if(m_xferState == 2 && m_operation == CMD_NONE)
+	{
+		sendCommand_ping();
+		m_xferState = 3;
+	}
+}
 
 void App::printError(pkgdata_t *pkg)
 {
@@ -23,8 +30,6 @@ void App::printError(pkgdata_t *pkg)
 }
 
 void App::handleXfer(pkgdata_t *pkg) {
-
-//	static unsigned int retries=0;
 
 	switch(m_xferState)
 	{
@@ -69,7 +74,7 @@ void App::handleXfer(pkgdata_t *pkg) {
 			break;
 
 		if(pkg->cmd == CMD_TXRX_ACK) {
-			qDebug() << "Ping.";
+			m_standardOutput << "Ping." << Qt::endl;
 			m_xferState = 2;
 		}
 		else {
@@ -210,9 +215,6 @@ bool App::writeMem() {
 	m_memBuffer.resize(m_memsize);
 	m_memBuffer = file.readAll();
 	file.close();
-
-	// set timeout
-//	m_timerTimeouts.start(5000); // ya me llega el tiemout desde memorycomm
 
 	return MemoryComm::writeMem(m_memBuffer);
 }

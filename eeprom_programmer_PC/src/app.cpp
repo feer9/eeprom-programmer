@@ -29,7 +29,8 @@ App::App(int &argc, char **argv, FILE* outStream)
 
 	setSignals();
 
-	m_timerTimeouts.setSingleShot(true);
+	m_pingTimer.setSingleShot(false);
+	m_pingTimer.start(500);
 
 	// Start communication
 	App::handleXfer(nullptr);
@@ -37,8 +38,8 @@ App::App(int &argc, char **argv, FILE* outStream)
 
 void App::setSignals()
 {
-	connect(&m_timerTimeouts, &QTimer::timeout,
-					this, &App::handleTimeout);
+	connect(&m_pingTimer, &QTimer::timeout,
+					this, &App::pingTimerLoop);
 
 	connect(&m_serialPortReader, &SerialPortReader::timeout,
 						   this, &App::handleTimeout);
@@ -61,7 +62,7 @@ void App::setCommandLineOptions(QCommandLineParser& parser)
 			{{"f", "file"},
 							"Read from / write to <file>.", "file"},
 			{{"p", "port"},
-							"Select the serial port to connect.", "port", "ttyUSB0"},
+							"Select the serial port to connect.", "port", SERIALPORTNAME},
 			{{"b", "baudrate"},
 							"Set the desired baudrate.", "baudrate"},
 		});
@@ -151,5 +152,3 @@ void App::setOperation(int newOperation)
 {
 	m_operation = newOperation;
 }
-
-

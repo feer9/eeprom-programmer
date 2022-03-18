@@ -28,10 +28,9 @@ public:
 	const QString &getOutputFilename() const;
 
 
-
-
 private slots:
 	void handleTimeout(void);
+	void pingTimerLoop(void);
 
 private:
 	void handleXfer(pkgdata_t *pkg);
@@ -48,7 +47,7 @@ private:
 	bool writeMem(void);
 
 	QByteArray m_memBuffer;
-	QTimer m_timerTimeouts; // no lo uso pa' na
+	QTimer m_pingTimer;
 
 	int m_xferState = 0;
 	bool m_connected = false;
