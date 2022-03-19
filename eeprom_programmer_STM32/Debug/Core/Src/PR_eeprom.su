@@ -1,3 +1,0 @@
-../Core/Src/PR_eeprom.c:12:5:readMemoryBlock	16	static
-../Core/Src/PR_eeprom.c:17:5:readMemory	16	static
-../Core/Src/PR_eeprom.c:22:5:saveMemory	16	static

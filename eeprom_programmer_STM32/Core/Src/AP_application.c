@@ -4,11 +4,7 @@
  *  Created on: 12 jun. 2021
  *      Author: feer
  */
-
 #include "main.h"
-
-
-
 
 /*
  * Electrical connections:
@@ -178,7 +174,7 @@ void uart_fsm(void)
 	static uint32_t timeout = TIMEOUT_MS;
 	static uint16_t retries = 0;
 	static package_t package = {0};
-	uint16_t mem_idx = 0;
+	static uint16_t mem_idx = 0;
 	HAL_StatusTypeDef ret;
 
 	if(HAL_GetTick() > timeout) {
@@ -362,36 +358,28 @@ HAL_StatusTypeDef sendMemory(uint8_t cmd)
 }
  **/
 
-/*
-HAL_StatusTypeDef receiveMemory()
-{
-	return serial_read(membuffer, g_memsize);
-}*/
-
-
-
-
-
-
-
 
 /* ----------------------------------------------------------------------- */
-#if 0
+#if 1
 
 int write_test()
 {
-//	uint16_t register_address = 0x0000;
 	int ret = HAL_OK;
+	uint8_t membuffer[0x2000];
+	extern struct memory_info memory[];
+	uint8_t memsz = memory[g_memtype].size;
 
+	HAL_Delay(5000);
 	serial_clearScreen();
 	serial_println("About to write entire memory...");
-	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
+	HAL_Delay(8000);
+	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, LED_ON);
 
-	for(int i=0; i<0x2000; ++i)
-		membuffer[i]=i;
+	for(int i=0; i<memsz; ++i)
+		membuffer[i]=(uint8_t)i;
 
-	ret = MEMX24645_write(membuffer, 0, 0x2000);
-/*	for(register_address = 0; register_address < 0x2000; register_address += 32)
+	ret = EEPROM_write(g_memtype, membuffer, 0, memsz);
+/*	for(uint16_t register_address = 0x0000U; register_address < 0x2000U; register_address += 32U)
 	{
 		for(int i=0; i<32; i++)
 			pagebuffer[i] = (uint8_t) register_address+i;
@@ -402,7 +390,7 @@ int write_test()
 		serial_println((char*)Buffer);
 	}*/
 
-	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, LED_OFF);
 
 	if(ret == HAL_OK)
 		serial_println("\r\nDone.");
@@ -414,21 +402,23 @@ int write_test()
 
 int read_test()
 {
-	uint16_t register_address = 0x0000;
+	uint16_t register_address = 0x0000U;
 	int ret = HAL_OK;
 	char buf[64] = "";
-	uint8_t pagebuffer[PAGE_SZ] = {0};
+	uint8_t pagebuffer[32] = {0};
+	extern struct memory_info memory[];
+	uint8_t pagesz = memory[g_memtype].pageSz;
 
-	memset(pagebuffer, 0x00, 32U);
-
+	HAL_Delay(5000);
 	serial_clearScreen();
 	serial_println("About to read entire memory...\r\n");
-	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
+	HAL_Delay(8000);
+	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, LED_ON);
 
 
-	for(register_address = 0; ret == HAL_OK && register_address < g_memsize; register_address += PAGE_SZ)
+	for(register_address = 0; ret == HAL_OK && register_address < g_memsize; register_address += pagesz)
 	{
-		ret = MEMX24645_read_page(pagebuffer, register_address);
+		ret = EEPROM_read_page(g_memtype, pagebuffer, register_address);
 
 		int i;
 		char *p = buf;
@@ -448,7 +438,7 @@ int read_test()
 		serial_println(buf);
 	}
 
-	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, LED_OFF);
 	if(ret == HAL_OK)
 		serial_println("\r\nDone.");
 	else
@@ -460,9 +450,10 @@ int read_test()
 void i2c_scanner(int startAddress)
 {
 	char buf[64] = "";
-
 	int dev, ret;
+	HAL_Delay(5000);
 	serial_println("Starting I2C scan...");
+	HAL_Delay(1000);
 	for(dev=startAddress; dev<128; ++dev)
 	{
 		ret = HAL_I2C_IsDeviceReady(&hi2c2, dev << 1, 3, 5);

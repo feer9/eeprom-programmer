@@ -1,9 +1,0 @@
-../Core/Src/AP_application.c:47:19:sendCommand	16	static
-../Core/Src/AP_application.c:51:19:sendPackage	24	static
-../Core/Src/AP_application.c:68:19:sendErr	16	static
-../Core/Src/AP_application.c:72:19:sendOK	8	static
-../Core/Src/AP_application.c:76:19:receivePackage	24	static
-../Core/Src/AP_application.c:115:5:cmdHasData	16	static
-../Core/Src/AP_application.c:144:20:sendMemoryBlock	24	static
-../Core/Src/AP_application.c:158:13:sendNext	24	static
-../Core/Src/AP_application.c:175:6:uart_fsm	16	static

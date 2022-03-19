@@ -1,8 +1,0 @@
-../Core/Src/PR_serial.c:14:5:serial_clearScreen	16	static
-../Core/Src/PR_serial.c:21:12:write	24	static
-../Core/Src/PR_serial.c:30:5:serial_write	24	static
-../Core/Src/PR_serial.c:41:5:serial_writebyte	16	static
-../Core/Src/PR_serial.c:47:6:serial_available	8	static
-../Core/Src/PR_serial.c:51:12:read	24	static
-../Core/Src/PR_serial.c:68:5:serial_read	32	static
-../Core/Src/PR_serial.c:90:5:serial_readbyte	16	static
