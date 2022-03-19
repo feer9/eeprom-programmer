@@ -32,8 +32,8 @@ void SerialPortReader::stopRxTimeout() {
 }
 
 void SerialPortReader::handleTimeout() {
-//	clearBuffer();
-//	emit timeout();
+	clearBuffer();
+	emit timeout();
 }
 
 void SerialPortReader::handleError(QSerialPort::SerialPortError serialPortError)
