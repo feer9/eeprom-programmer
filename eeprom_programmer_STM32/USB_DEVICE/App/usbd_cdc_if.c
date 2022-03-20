@@ -423,5 +423,3 @@ void CDC_FlushRxBuffer_FS() {
 /**
   * @}
   */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
