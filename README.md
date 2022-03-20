@@ -18,6 +18,9 @@ STM32F103  | Function
 PB10       |   SCL  
 PB11       |   SDA  
 
+**Important note:**  
+Aditionally, a 10k pullup resistor to Vcc is required in both SDA and SCL.
+
 ## Memory
 Supported I2C memories are:
 
