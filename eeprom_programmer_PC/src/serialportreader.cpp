@@ -16,6 +16,7 @@ SerialPortReader::SerialPortReader(QSerialPort *serialPort,
 			this, &SerialPortReader::handleTimeout);
 
 	m_readData.reserve(10000);
+	m_timer.setInterval(1000);
 	m_timer.setSingleShot(true);
 }
 
@@ -27,6 +28,7 @@ void SerialPortReader::clearBuffer() {
 void SerialPortReader::startRxTimeout(int time_ms) {
 	m_timer.start(time_ms);
 }
+
 void SerialPortReader::stopRxTimeout() {
 	m_timer.stop();
 }
@@ -57,10 +59,10 @@ void SerialPortReader::handleReadyRead()
 	m_readData.append(recv);
 	m_available = m_readData.length();
 
-	processRx();
-
 	// restart timeout each time we get something
 	m_timer.start();
+
+	processRx();
 }
 
 void SerialPortReader::processRx(void)
@@ -128,8 +130,13 @@ void SerialPortReader::processRx(void)
 
 		if(pkg_ready)
 		{
-			if(m_readData.isEmpty())
+			if(m_readData.isEmpty()) {
+				qDebug("No more data, stopping Rx timeout");
 				m_timer.stop();
+			}
+			else {
+				qDebug("More data coming, not stoping timeout");
+			}
 			emit packageReady(&m_pkg);
 		}
 	}
