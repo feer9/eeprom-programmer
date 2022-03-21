@@ -19,6 +19,7 @@ enum commands_e: uint8_t {
 	CMD_INIT			= 0x01,
 	CMD_PING			= 0x02,
 	CMD_MEMID			= 0x03,
+	CMD_IDLE			= 0xE1,
 	CMD_STARTXFER		= 0xA5, /* not really a command */
 	CMD_ENDXFER			= 0x5A, /* not really a command */
 	CMD_DISCONNECT		= 0x0F,
@@ -59,7 +60,18 @@ struct package_t {
 
 struct pkgdata_t {
 	commands_e cmd;
-	QByteArray *data;
+	QByteArray data;
+};
+
+enum errorcode_e {
+	ERROR_NONE,
+	ERROR_UNKNOWN,   /* Implies CMD_DISCONNECT */
+	ERROR_MEMID,
+	ERROR_READMEM,
+	ERROR_COMM,
+	ERROR_MAX_RETRY, /* Implies CMD_DISCONNECT */
+	ERROR_TIMEOUT,   /* Implies CMD_DISCONNECT */
+	ERROR_MEMIDX
 };
 
 class EEPROM
@@ -76,6 +88,8 @@ public:
 	static memtype_e getMemType(void) {return m_memtype;}
 	static qint64 getMemSize(void);
 	static qint64 getMemSize(memtype_e);
+	static QString getErrorMsg(errorcode_e);
+	static QString getCommandName(commands_e cmd);
 
 	static int cmdHasData(commands_e command);
 

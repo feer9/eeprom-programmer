@@ -51,11 +51,12 @@ private:
 
 	int m_xferState = 0;
 	bool m_connected = false;
-	int m_operation = 0;
+	int m_requestedOperation = 0;
 
 	QString m_filename_in = "mem_in.bin";
 	QString m_filename_out = "mem_out.bin";
 	void setSignals();
+	void doStuff();
 };
 
 // m_ = member

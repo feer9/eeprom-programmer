@@ -43,12 +43,12 @@ void SerialPortWriter::handleError(QSerialPort::SerialPortError serialPortError)
 	}
 }
 
-void SerialPortWriter::finishTxXfer(int status)
+/*void SerialPortWriter::finishTxXfer(int status)
 {
 	m_busy = false;
 	m_tries = 0;
 	emit txXferComplete(status);
-}
+}*/
 
 /*void SerialPortWriter::transmitNextPackage()
 {
@@ -94,13 +94,10 @@ void SerialPortWriter::handleBytesWritten(qint64 bytes)
 
 	if (m_packageBytesWritten == m_package.size())
 	{
-		qDebug() << "Finished sending data.";
-//		qDebug() << m_writeData.toHex();
-
-		m_busy = false;
 		m_packageBytesWritten = 0;
 		m_package.clear();
 		m_timer.stop();
+		m_busy = false;
 
 		emit packageSent(m_cmd);
 	}
@@ -148,25 +145,22 @@ qint64 SerialPortWriter::send(commands_e cmd, const QByteArray &data) {
 	m_busy = true;
 
 	m_cmd = cmd;
-	m_data = data;
-	m_packageData = data.left(PKG_DATA_MAX);
-	m_bytesRemaining = data.size();
+	if(data.isNull()) {
+		m_data.clear();
+		m_packageData.clear();
+		m_bytesRemaining = 0;
+	}
+	else {
+		m_data = data;
+		m_packageData = data.left(PKG_DATA_MAX);
+		m_bytesRemaining = data.size();
+	}
 
 	return sendPackage();
 }
 
 qint64 SerialPortWriter::send(commands_e cmd) {
-
-	if(m_busy)
-		return -1;
-	m_busy = true;
-
-	m_cmd = cmd;
-	m_data.clear();
-	m_packageData.clear();
-	m_bytesRemaining = 0;
-
-	return sendPackage();
+	return send(cmd, QByteArray());
 }
 
 bool SerialPortWriter::busy() const

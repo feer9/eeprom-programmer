@@ -27,7 +27,7 @@ public:
 	virtual ~SerialPortReader() {qDebug() << "Data received: " << m_received; };
 
 	void clearBuffer();
-	qint64 getAvailable() const {return m_available;}
+	qint64 getAvailable() const {return m_available;} // se usa esto????
 
 signals:
 	void packageReady(package_t* pkg);
@@ -49,7 +49,6 @@ private:
 
 	void processRx(void);
 	int cmdHasData(uint8_t command);
-//	void processPackageReady(void);
 
 	QSerialPort *m_serialPort = nullptr;
 	SerialPortWriter *m_serialPortWriter = nullptr;
@@ -61,7 +60,7 @@ private:
 	QByteArray m_readData;
 	QByteArray m_pkgData;
 	qint64 m_received = 0;
-	qint64 m_available = 0;
+	qint64 m_available = 0; // se usa??
 };
 
 #endif // SERIALPORTREADER_H

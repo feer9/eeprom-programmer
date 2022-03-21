@@ -92,9 +92,18 @@ int serial_readbyte(uint8_t *byte)
 	return serial_read(byte, 1);
 }
 
+int serial_println(const char *s) {
+	int err = write((uint8_t *) s, strlen(s));
+	if(!err) {
+		err = write((uint8_t *) "\r\n", 2);
+	}
+	return err;
+}
+
 #else // UART
 
-int serial_write(const uint8_t *data, uint16_t len) {
+static int write(const uint8_t *data, uint16_t sz)
+{
 	uint8_t retries = 5;
 	int ret = 1;
 
@@ -105,8 +114,16 @@ int serial_write(const uint8_t *data, uint16_t len) {
 	return ret;
 }
 
-int serial_read(uint8_t *data, uint16_t len) {
+int serial_write(const uint8_t *data, uint16_t len) {
+	return write(data,len);
+}
+
+static int read(uint8_t *data, uint16_t len) {
 	return HAL_UART_Receive(&huart2, data, len, 1000) ;
+}
+
+int serial_read(uint8_t *data, uint16_t len) {
+	return read(data, len);
 }
 
 int serial_print(const char *s) {

@@ -14,10 +14,10 @@ void App::handleTimeout(void) {
 }
 
 void App::pingTimerLoop(void) {
-	if(m_xferState == 2 && m_operation == CMD_NONE)
+	if(m_xferState == CMD_IDLE && m_requestedOperation == CMD_NONE)
 	{
 		sendCommand_ping();
-		m_xferState = 3;
+		m_xferState = CMD_PING;
 	}
 }
 
@@ -29,12 +29,40 @@ void App::printError(pkgdata_t *pkg)
 		m_standardOutput << "uC ERROR " << pkg->data[0] << " reading data..." << Qt::endl;
 }
 
+void App::doStuff()
+{
+	if(m_requestedOperation == CMD_NONE) {
+		m_xferState = CMD_IDLE;
+	}
+	else {
+		// Send read or write memory command
+		if(m_requestedOperation == CMD_READMEM) {
+			readMem();
+			m_xferState = CMD_READMEM;
+		}
+		else if(m_requestedOperation == CMD_WRITEMEM) {
+			if(writeMem()) {
+				m_xferState = CMD_WRITEMEM;
+			}
+			else {
+				m_requestedOperation = CMD_NONE;
+				m_xferState = CMD_IDLE;
+			}
+		}
+		else {
+			m_standardOutput << "Invalid operation." << Qt::endl;
+			m_requestedOperation = CMD_NONE;
+			m_xferState = CMD_IDLE;
+		}
+	}
+}
+
 void App::handleXfer(pkgdata_t *pkg) {
 
 	switch(m_xferState)
 	{
 	case 0: // trying to connect
-
+		m_connected = false;
 		sendCommand(CMD_INIT);
 		m_xferState = 1;
 		break;
@@ -46,8 +74,9 @@ void App::handleXfer(pkgdata_t *pkg) {
 
 		if(pkg->cmd == CMD_INIT) {
 			m_standardOutput << "Connected to uC." << Qt::endl;
-			m_xferState++;
 			m_connected = true;
+			// Make a call to the uC
+			doStuff();
 		}
 		else {
 			m_standardOutput << "Could not connect to uC" << Qt::endl;
@@ -57,48 +86,22 @@ void App::handleXfer(pkgdata_t *pkg) {
 		break;
 //		[[fallthrough]];
 
-	case 2: // Make a call to the uC
-
-		if(m_operation == CMD_NONE) {
-			sendCommand_ping();
-			m_xferState = 3;
-		}
-		else {
-			m_xferState = 4;
-		}
+	case CMD_IDLE: // not doing much :-)
 		break;
 
-	case 3: // receive ping
+	case CMD_PING: // waiting for ping answer
 
 		if(!pkg)
 			break;
 
 		if(pkg->cmd == CMD_TXRX_ACK) {
 			m_standardOutput << "Ping." << Qt::endl;
-			m_xferState = 2;
+			m_xferState = CMD_IDLE;
 		}
 		else {
 			m_standardOutput << "Connection error" << Qt::endl;
 			m_connected = false;
 			m_xferState = 0;
-		}
-		break;
-
-	case 4: // Send read or write memory command
-
-		if(m_operation == CMD_READMEM) {
-			readMem();
-			m_xferState = CMD_READMEM;
-		}
-		else if(m_operation == CMD_WRITEMEM) {
-			if(writeMem())
-				m_xferState=CMD_WRITEMEM;
-			else
-				m_xferState = 2;
-		}
-		else {
-			m_standardOutput << "Invalid operation." << Qt::endl;
-			m_xferState = 2;
 		}
 		break;
 
@@ -109,17 +112,17 @@ void App::handleXfer(pkgdata_t *pkg) {
 
 		if(pkg->cmd == CMD_MEMDATA) {
 			// finished receiving memory data
-			QByteArray *buf = pkg->data;
-			m_memBuffer = *buf;
+
+			m_memBuffer = pkg->data;
 			printData();
 			saveData();
-			m_operation = CMD_NONE;
+			m_requestedOperation = CMD_NONE;
 		}
 		else {
 			printError(pkg);
 		}
 		clearBuffers();
-		m_xferState = 2;
+		m_xferState = CMD_IDLE;
 		break;
 
 	case CMD_WRITEMEM: // requested eeprom full write - waiting confirmation
@@ -129,13 +132,13 @@ void App::handleXfer(pkgdata_t *pkg) {
 
 		if(pkg->cmd == CMD_OK) { // TODO: check what cmd should be
 			m_standardOutput << "Memory write SUCCESSFULLY" << Qt::endl;
-			m_operation = CMD_NONE;
+			m_requestedOperation = CMD_NONE;
 		}
 		else {
 			printError(pkg);
 		}
 		clearBuffers();
-		m_xferState=2;
+		m_xferState = CMD_IDLE;
 		break;
 
 	default:

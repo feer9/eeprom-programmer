@@ -27,11 +27,12 @@ void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QS
 
 int main(int argc, char *argv[])
 {
-//	qInstallMessageHandler(myMessageOutput);
+	qInstallMessageHandler(myMessageOutput);
 
 	App app(argc, argv);
 
 #ifdef __unix
+	// https://github.com/sijk/qt-unix-signals
 	UnixSignalWatcher sigwatch;
 	sigwatch.watchForSignal(SIGINT);
 	sigwatch.watchForSignal(SIGTERM);

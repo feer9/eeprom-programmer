@@ -61,8 +61,8 @@ HAL_StatusTypeDef sendPackage(uint8_t cmd, uint8_t *data, uint16_t len) {
 	return HAL_OK;
 }
 
-HAL_StatusTypeDef sendErr(uint8_t status) {
-	return sendPackage(CMD_ERR, &status, 1);
+HAL_StatusTypeDef sendErr(errorcode_t status) {
+	return sendPackage(CMD_ERR, (uint8_t*)&status, 1);
 }
 
 HAL_StatusTypeDef sendOK(void) {
@@ -108,7 +108,7 @@ HAL_StatusTypeDef receivePackage(package_t *pkg) {
 	return HAL_OK;
 }
 
-int cmdHasData(commands_t command) {
+int cmdHasData(command_t command) {
 	switch(command) {
 
 	case CMD_INIT:  return 0;
@@ -165,6 +165,27 @@ static void sendNext(uint16_t mem_idx, int *st) {
 	}
 }
 
+static bool isCommandValid(int st, command_t cmd)
+{
+	switch(st)
+	{
+	case 0:
+		if(cmd == CMD_INIT) return true;
+		break;
+	case 1:
+		if(		cmd == CMD_READMEM ||
+				cmd == CMD_WRITEMEM ||
+				cmd == CMD_PING ||
+				cmd == CMD_DISCONNECT ||
+				cmd == CMD_MEMID)
+			return true;
+		break;
+	default:
+		break;
+	}
+	return false;
+}
+
 
 /*********************************************************/
 
@@ -178,9 +199,10 @@ void uart_fsm(void)
 	HAL_StatusTypeDef ret;
 
 	if(HAL_GetTick() > timeout) {
-		if(st != 0)
+		if(st != 0) {
 			sendErr(ERROR_TIMEOUT);
-		st = 0;
+			st = 0;
+		}
 	}
 
 	switch (st)
@@ -205,23 +227,29 @@ void uart_fsm(void)
 		if(ret != HAL_OK)
 			break;
 
+		if(!isCommandValid(st,package.cmd)) {
+			st = 0;
+			break;
+		}
+
 		timeout = HAL_GetTick()+TIMEOUT_MS;
 		st = package.cmd;
 		break;
 
-	case CMD_READMEM:
-		if(package.data[0] != g_memtype) {
+	case CMD_READMEM: /* received READMEM */
+		if(package.data[0] == g_memtype) {
+			mem_idx = 0;
+			sendCommand(CMD_OK);
+			timeout = HAL_GetTick()+TIMEOUT_MS;
+			st = CMD_TXRX_ACK;
+		}
+		else {
 			sendErr(ERROR_MEMID);
 			st = 1;
-			break;
 		}
-		mem_idx = 0;
-		timeout = HAL_GetTick()+TIMEOUT_MS;
-		// set state so next time we skip memtype verification
-		st = CMD_TXRX_ACK;
-		// FALLTHROUGH
+		break;
 
-	case CMD_TXRX_ACK:
+	case CMD_TXRX_ACK: /* waiting to send data */
 		ret = receivePackage(&package);
 		if(ret != HAL_OK)
 			break;
@@ -245,15 +273,22 @@ void uart_fsm(void)
 		if(package.cmd == CMD_TXRX_ACK) {
 			// go send next chunk
 			mem_idx += PKG_DATA_MAX;
-			st = CMD_TXRX_ACK;
+			if(mem_idx >= g_memsize) {
+				// PC is doing some stupid shit
+				sendErr(ERROR_MEMIDX);
+				st = 1;
+			}
+			else {
+				st = CMD_TXRX_ACK;
+			}
+		}
+		else if(package.cmd == CMD_TXRX_DONE) {
+			st = 1;
 		}
 		else if(package.cmd == CMD_TXRX_ERR && retries < RETRIES_MAX) {
 			// resend current chunk
 			sendNext(mem_idx, &st);
 			++retries;
-		}
-		else if(package.cmd == CMD_TXRX_DONE) {
-			st = 1;
 		}
 		else {
 			// something went wrong

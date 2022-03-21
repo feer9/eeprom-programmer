@@ -131,13 +131,14 @@ void SerialPortReader::processRx(void)
 		if(pkg_ready)
 		{
 			if(m_readData.isEmpty()) {
-				qDebug("No more data, stopping Rx timeout");
+				qDebug("No more data, stopping Rx timer");
 				m_timer.stop();
 			}
 			else {
-				qDebug("More data coming, not stoping timeout");
+				qDebug("More data coming, not stoping timer");
 			}
 			emit packageReady(&m_pkg);
+			pkg_ready = false;
 		}
 	}
 }

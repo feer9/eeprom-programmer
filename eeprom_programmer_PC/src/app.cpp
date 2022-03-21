@@ -8,7 +8,6 @@ App::App(int &argc, char **argv, FILE* outStream)
 	bool start = configure();
 	if(!start) {
 		// We can't call exit() before exec() ...
-		// ToDo: exit with error code
 		QTimer::singleShot(0, qApp, SLOT(quit()));
 		return;
 	}
@@ -51,7 +50,8 @@ void App::setCommandLineOptions(QCommandLineParser& parser)
 	App::setApplicationVersion("1.0");
 	parser.setApplicationDescription("Read and write EEPROM memories.");
 
-	parser.addHelpOption();
+	parser.addOption({{"h", "help"},
+					 "Displays help on commandline options."});
 	parser.addVersionOption();
 
 	parser.addOptions({
@@ -62,7 +62,7 @@ void App::setCommandLineOptions(QCommandLineParser& parser)
 			{{"f", "file"},
 							"Read from / write to <file>.", "file"},
 			{{"p", "port"},
-							"Select the serial port to connect.", "port", SERIALPORTNAME},
+							"Select the serial port to connect.", "port"},
 			{{"b", "baudrate"},
 							"Set the desired baudrate.", "baudrate"},
 		});
@@ -81,22 +81,26 @@ bool App::configure() {
 	const QStringList args = parser.positionalArguments();
 	const QString target = args.isEmpty() ? QString() : args.first();
 
-	if(parser.isSet("h") || parser.isSet("v")) {
-		 return false;
+	if(parser.isSet("h")) {
+		parser.showHelp(0);
+		return false;
 	}
 	if(args.size() < 1) {
 		m_standardOutput << "Error: you must select the memory target." << Qt::endl;
-		m_standardOutput << parser.helpText() << Qt::endl;
+		parser.showHelp(1);
 		return false;
 	}
 	if(!setTargetMem(target)) {
 		m_standardOutput << "Error: invalid memory type selected." << Qt::endl;
-		m_standardOutput << parser.helpText() << Qt::endl;
+		parser.showHelp(1);
 		return false;
 	}
 
 	const QString targetFile = parser.value("file");
-	m_serialPortOptions.name = parser.value("port");
+
+	if(parser.isSet("port")) {
+		m_serialPortOptions.name = parser.value("port");
+	}
 
 	if(parser.isSet("write")) {
 		setOperation(CMD_WRITEMEM);
@@ -109,8 +113,9 @@ bool App::configure() {
 			setOutputFilename(targetFile);
 	}
 
-	if(parser.isSet("baudrate"))
+	if(parser.isSet("baudrate")) {
 		m_serialPortOptions.baudrate = parser.value("baudrate").toInt();
+	}
 
 	qDebug() << "Serial port:   " << m_serialPortOptions.name;
 	qDebug() << "Baudrate:      " << m_serialPortOptions.baudrate;
@@ -150,5 +155,5 @@ void App::setOutputFilename(const QString &newFilename_out)
 
 void App::setOperation(int newOperation)
 {
-	m_operation = newOperation;
+	m_requestedOperation = newOperation;
 }

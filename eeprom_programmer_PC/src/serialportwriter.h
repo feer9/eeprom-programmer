@@ -31,7 +31,7 @@ public:
 	bool busy(void) const;
 
 signals:
-	void txXferComplete(int status);
+//	void txXferComplete(int status);
 	void packageSent(commands_e);
 
 public slots:

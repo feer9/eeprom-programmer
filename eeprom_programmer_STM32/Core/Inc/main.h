@@ -40,6 +40,8 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
+#define PACKED __attribute__((packed))
+
 enum memtype_e {
 	MEMTYPE_NONE,
 	MEMTYPE_24LC16,
@@ -59,7 +61,7 @@ extern uint8_t g_buffer[];
 extern I2C_HandleTypeDef hi2c2;
 //extern UART_HandleTypeDef huart2;
 
-enum __attribute__ ((__packed__)) commands_e {
+enum PACKED commands_e {
 	CMD_NONE			= 0x00,
 
 	CMD_INIT			= 0x01,
@@ -84,7 +86,7 @@ enum __attribute__ ((__packed__)) commands_e {
 	/* get data from pc and write to eeprom */
 	CMD_WRITEMEM		= 0x80
 };
-typedef enum commands_e commands_t;
+typedef enum commands_e command_t;
 
 /*
  * PACKAGE STRUCTURE:
@@ -92,10 +94,10 @@ typedef enum commands_e commands_t;
  */
 
 typedef struct {
-	uint8_t cmd;
+	command_t cmd;
+	uint16_t crc;
 	uint16_t datalen;
 	uint8_t *data;
-	uint16_t crc;
 } package_t;
 
 
@@ -106,14 +108,15 @@ struct memory_info {
 	uint16_t addrSz;
 };
 
-enum errorcode_e {
+enum PACKED errorcode_e {
 	ERROR_NONE,
 	ERROR_UNKNOWN,   /* Implies CMD_DISCONNECT */
 	ERROR_MEMID,
 	ERROR_READMEM,
 	ERROR_COMM,
 	ERROR_MAX_RETRY, /* Implies CMD_DISCONNECT */
-	ERROR_TIMEOUT    /* Implies CMD_DISCONNECT */
+	ERROR_TIMEOUT,   /* Implies CMD_DISCONNECT */
+	ERROR_MEMIDX
 };
 typedef enum errorcode_e errorcode_t;
 
@@ -174,7 +177,7 @@ HAL_StatusTypeDef sendRxACK(void);
 HAL_StatusTypeDef receiveMemory(void);
 HAL_StatusTypeDef sendMemory();
 int writeMemory(enum memtype_e memtype);
-void i2c_scanner(void);
+void i2c_scanner(int);
 void uart_fsm(void);
 
 HAL_StatusTypeDef sendCommand(uint8_t cmd);
@@ -203,5 +206,3 @@ uint32_t getMemSize(enum memtype_e memtype);
 #endif
 
 #endif /* __MAIN_H */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

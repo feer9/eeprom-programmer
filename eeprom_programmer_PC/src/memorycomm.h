@@ -14,13 +14,6 @@
 #endif
 
 
-enum modes_e {
-	MODE_NONE,
-	MODE_TX,
-	MODE_RX
-};
-
-
 class MemoryComm : public QCoreApplication, public EEPROM
 {
 	Q_OBJECT
@@ -40,15 +33,21 @@ public:
 		QSerialPort::FlowControl flowcontrol	= QSerialPort::NoFlowControl;
 	} ;
 
+	enum modes_e {
+		MODE_NONE,
+		MODE_TX,
+		MODE_RX
+	};
+
 protected:
 	void setSerialPortOptions(SerialPortOptions& op);
 
 	bool writeMem(const QByteArray& memBuffer);
-	void readMem(void);
-	void sendCommand_ping(void);
-	void sendCommand(commands_e cmd);
-	void sendCommand(commands_e cmd, uint8_t data);
-	void sendCommand(commands_e cmd, const QByteArray& data);
+	bool readMem(void);
+	bool sendCommand_ping(void);
+	bool sendCommand(commands_e cmd);
+	bool sendCommand(commands_e cmd, uint8_t data);
+	bool sendCommand(commands_e cmd, const QByteArray& data);
 
 	void clearBuffers(void);
 
@@ -61,25 +60,30 @@ private:
 
 signals:
 
-public slots:
+private slots:
 	void handlePackageReceived(package_t *pkg);
-	void handlePackageSent(commands_e);
+	void setRxTimeout(commands_e);
 	void handleRxTimedOut(void);
 
 	void handleRxCrcError(void);
 
-	void handleTxXferComplete(int status);
+	void handlePackageSent(commands_e cmd);
+//	void handleTxXferComplete(int status);
 
 
 	// Member variables definitions:
 private:
 	commands_e m_lastTxCmd = CMD_NONE;
 	commands_e m_lastRxCmd = CMD_NONE;
-	pkgdata_t m_pkg;
 	QByteArray m_buffer;
+	pkgdata_t m_pkg;
 
 	modes_e m_xferMode = MODE_NONE;
 	uint8_t m_xferState = 0;
+
+	QByteArray m_pending;
+
+	void errorReceived(package_t *pkg);
 
 protected:
 	QTextStream m_standardOutput;

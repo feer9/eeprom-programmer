@@ -2,7 +2,6 @@
 
 EEPROM::EEPROM()
 {
-
 }
 
 memtype_e EEPROM::m_memtype = MEMTYPE_NONE;
@@ -27,6 +26,7 @@ int EEPROM::cmdHasData(commands_e command) {
 
 	case CMD_NONE:
 	case CMD_PING:
+	case CMD_IDLE:
 	case CMD_TXRX_ERR:
 	case CMD_TXRX_ACK:
 	case CMD_TXRX_DONE:
@@ -38,6 +38,44 @@ int EEPROM::cmdHasData(commands_e command) {
 	return 0;
 }
 
+QString EEPROM::getErrorMsg(errorcode_e err) {
+	switch(err)
+	{
+	case ERROR_NONE:      return QString("No error");
+	case ERROR_UNKNOWN:   return QString("Unknown error");
+	case ERROR_MEMID:     return QString("Invalid memory ID");
+	case ERROR_READMEM:   return QString("Error reading memory");
+	case ERROR_COMM:      return QString("Communication error");
+	case ERROR_MAX_RETRY: return QString("Too many failed attempts");
+	case ERROR_TIMEOUT:   return QString("Timeout reached");
+	case ERROR_MEMIDX:    return QString("Invalid memory index");
+	}
+	return QString("Unregistered error");
+}
+
+QString EEPROM::getCommandName(commands_e cmd) {
+	switch(cmd)
+	{
+	case CMD_NONE:			return QString("None");
+	case CMD_INIT:			return QString("Init");
+	case CMD_PING:			return QString("Ping");
+	case CMD_MEMID:			return QString("MemID");
+	case CMD_IDLE:			return QString("Idle");
+	case CMD_STARTXFER:		return QString("StartXfer");
+	case CMD_ENDXFER:		return QString("EndXfer");
+	case CMD_DISCONNECT:	return QString("Disconnect");
+	case CMD_OK:			return QString("Ok");
+	case CMD_TXRX_ACK:		return QString("XferAcknowledge");
+	case CMD_TXRX_DONE:		return QString("XferDone");
+	case CMD_ERR:			return QString("Error");
+	case CMD_TXRX_ERR:		return QString("XferError");
+	case CMD_READMEM:		return QString("ReadMemory");
+	case CMD_READNEXT:		return QString("ReadNext");
+	case CMD_MEMDATA:		return QString("MemoryData");
+	case CMD_WRITEMEM:		return QString("WriteMemory");
+	}
+	return QString("Unregistered_command");
+}
 
 qint64 EEPROM::getMemSize(void) {
 	return getMemSize(m_memtype);

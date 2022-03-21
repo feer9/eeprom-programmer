@@ -172,7 +172,7 @@ uint32_t getMemSize(enum memtype_e memtype) {
 static int query_devices(void)
 {
 	int status = HAL_ERROR;
-/*
+
 	for(int i=1; i<MEMTYPE_mAX; ++i)
 	{
 		status = HAL_I2C_IsDeviceReady(&hi2c2, memory[i].address7 << 1U, 3U, 5U);
@@ -182,9 +182,9 @@ static int query_devices(void)
 		}
 	}
 
-	return status;*/ // testing :-)
-	g_memtype = MEMTYPE_24LC16;
-	return HAL_OK;
+	return status; // testing :-)
+//	g_memtype = MEMTYPE_24LC16;
+//	return HAL_OK;
 }
 
 void EEPROM_Init()
