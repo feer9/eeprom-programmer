@@ -24,3 +24,17 @@ int saveMemory(const uint8_t *data)
 	return EEPROM_write(g_memtype, data, 0, g_memsize);
 }
 
+int saveMemoryBlock(const uint8_t *data, uint16_t offset)
+{
+	int status = EEPROM_write(g_memtype, data, offset, PKG_DATA_MAX);
+	if(status != HAL_OK)
+		return status;
+	uint8_t tmpbuf[PKG_DATA_MAX] = {0};
+	status = readMemoryBlock(tmpbuf, offset);
+	if(status != HAL_OK)
+		return status;
+	for(uint16_t i=0; i<PKG_DATA_MAX; ++i)
+		if(data[i] != tmpbuf[i])
+			return ERROR_WRITEMEM;
+	return HAL_OK;
+}

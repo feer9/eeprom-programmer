@@ -13,7 +13,7 @@ enum memtype_e {
 	MEMTYPE_mAX
 };
 
-enum commands_e: uint8_t {
+enum commands_e	: uint8_t {
 	CMD_NONE			= 0x00,
 
 	CMD_INIT			= 0x01,
@@ -35,6 +35,8 @@ enum commands_e: uint8_t {
 	CMD_READNEXT		= 0x61, /* Request to send next block */
 
 	CMD_MEMDATA         = 0x70, /* Data is being sent over */
+	CMD_DATA            = 0x71, /* Simple 1byte data command */
+	CMD_INFO			= 0x72, /* PKG_DATA_MAX bytes of text */
 
 	/* get data from pc and write to eeprom */
 	CMD_WRITEMEM		= 0x80
@@ -56,7 +58,7 @@ struct package_t {
 	uint16_t datalen;
 	uint16_t crc;
 	uint8_t *data;
-} ;
+};
 
 struct pkgdata_t {
 	commands_e cmd;
@@ -68,6 +70,7 @@ enum errorcode_e {
 	ERROR_UNKNOWN,   /* Implies CMD_DISCONNECT */
 	ERROR_MEMID,
 	ERROR_READMEM,
+	ERROR_WRITEMEM,
 	ERROR_COMM,
 	ERROR_MAX_RETRY, /* Implies CMD_DISCONNECT */
 	ERROR_TIMEOUT,   /* Implies CMD_DISCONNECT */

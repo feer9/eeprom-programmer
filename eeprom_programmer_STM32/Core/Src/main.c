@@ -97,11 +97,12 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  //  write_test();
-  //  read_test();
+//    write_test();
+//    read_test();
   while (1)
   {
     uart_fsm();
+//	  i2c_scanner(0x00); HAL_Delay(5000);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

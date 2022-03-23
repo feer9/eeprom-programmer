@@ -1,9 +1,23 @@
 /*
- * AP_application.c
- *
+ *  EEPROM-Programmer - Read and write EEPROM memories.
+ *  Copyright (C) 2022  Fernando Coda <fcoda@pm.me>
  *  Created on: 12 jun. 2021
- *      Author: feer
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License along
+ *  with this program; if not, write to the Free Software Foundation, Inc.,
+ *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+
 #include "main.h"
 
 /*
@@ -22,26 +36,26 @@
  * 	 6: SCL
  * 	 7: GND
  * 	 8: VCC
+ *
+ * Add a  10kohm pullup resistor on SCL and SDA
  */
-
 
 #define SEND(x) do {if((x) != HAL_OK) return HAL_ERROR;} while(0)
 #define RECV(x) do {if((x) != HAL_OK) return HAL_ERROR;} while(0)
 
-
 static int cmdHasData(uint8_t command);
 
 enum memtype_e g_memtype = MEMTYPE_NONE;
-uint32_t g_memsize;
-
-//uint8_t membuffer[PACKAGE_SZ];
-uint8_t g_buffer[PKG_DATA_MAX];
-
-
+uint32_t       g_memsize = 0UL;
+uint8_t        g_buffer[PKG_DATA_MAX];
 
 
 HAL_StatusTypeDef sendCommand(uint8_t cmd) {
 	return sendPackage(cmd, NULL, 0);
+}
+
+HAL_StatusTypeDef sendCommandWithData(uint8_t cmd, uint8_t data) {
+	return sendPackage(cmd, &data, 1);
 }
 
 HAL_StatusTypeDef sendPackage(uint8_t cmd, uint8_t *data, uint16_t len) {
@@ -117,6 +131,8 @@ int cmdHasData(command_t command) {
 	case CMD_READMEM: return 1; /* contains the memtype_e */
 	case CMD_READNEXT: return 0;
 	case CMD_MEMDATA: return PKG_DATA_MAX;
+	case CMD_DATA: return 1;
+	case CMD_INFO: return PKG_DATA_MAX;
 
 	case CMD_WRITEMEM: return 1;
 
@@ -151,7 +167,7 @@ static errorcode_t sendMemoryBlock(uint8_t cmd, uint16_t offset)
 	return ERROR_NONE;
 }
 
-static void sendNext(uint16_t mem_idx, int *st) {
+static int sendNext(uint16_t mem_idx, int *st) {
 	errorcode_t ret = sendMemoryBlock(CMD_MEMDATA, mem_idx);
 	if (ret == ERROR_NONE) {
 		*st = CMD_READNEXT;
@@ -163,6 +179,7 @@ static void sendNext(uint16_t mem_idx, int *st) {
 		else
 			*st = 1;
 	}
+	return (int) ret;
 }
 
 static bool isCommandValid(int st, command_t cmd)
@@ -301,24 +318,68 @@ void uart_fsm(void)
 		timeout = HAL_GetTick()+TIMEOUT_MS;
 		break;
 
-/*
 	case CMD_WRITEMEM:
-		requested_mem = st & 0x0F;
-		if(requested_mem != g_memtype) {
-			sendErr(2);
+
+		if(package.data[0] == g_memtype) {
+			mem_idx = 0;
+			timeout = HAL_GetTick()+TIMEOUT_MS;
+			st = CMD_MEMDATA;
+			sendCommand(CMD_OK);
+		}
+		else {
 			st = 1;
+			sendErr(ERROR_MEMID);
+		}
+		break;
+
+	case CMD_MEMDATA: /* wait to receive memory data */
+		ret = receivePackage(&package);
+		if(ret != HAL_OK)
+			break;
+
+		if(package.cmd == CMD_MEMDATA)
+		{
+			int status = HAL_OK;
+			if((mem_idx + package.datalen) <= g_memsize) {
+				// write to eeprom the content received
+				status = saveMemoryBlock(package.data, mem_idx);
+				if(status == HAL_OK) {
+					mem_idx += package.datalen;
+					if(mem_idx >= g_memsize) {
+						sendCommand(CMD_TXRX_DONE);
+						st = 1;
+					}
+					else {
+						sendCommand(CMD_TXRX_ACK);
+					}
+				}
+				else {
+					sendErr(ERROR_WRITEMEM);
+					st = 1;
+				}
+			}
+			else {
+				sendErr(ERROR_MEMIDX);
+				st = 0;
+			}
+		}
+		else {
+			if(package.cmd != CMD_ERR)
+				sendErr(ERROR_UNKNOWN);
+			st = 0;
 		}
 
-		// write to eeprom the content received
-		saveMemory(package.data);
-
-		st = 1;
+		timeout = HAL_GetTick()+TIMEOUT_MS;
 		break;
-*/
 
 	case CMD_PING:
 		sendCommand(CMD_TXRX_ACK);
 		timeout = HAL_GetTick()+TIMEOUT_MS;
+		st = 1;
+		break;
+
+	case CMD_MEMID:
+		sendCommandWithData(CMD_DATA, g_memtype);
 		st = 1;
 		break;
 
@@ -331,87 +392,28 @@ void uart_fsm(void)
 		break;
 	}
 }
-
-
-
-
-
-
-/*HAL_StatusTypeDef sendMemory()
-{
-	uint8_t cmd = CMD_READMEM|g_memtype;
-	uint32_t offset;
-
-	for(offset=0; offset<g_memsize; offset+=MAX_PKG_SZ)
-	{
-		int retry = 5, status = HAL_ERROR;
-		while(retry-- && status != HAL_OK) {
-			status = trySend(cmd, offset);
-		}
-		if(status != HAL_OK) {
-			// they didn't receive it
-			return HAL_ERROR;
-		}
-	}
-
-	return HAL_OK;
-}*/
-
-/*
-HAL_StatusTypeDef sendMemory(uint8_t cmd)
-{
-	int offset, retry;
-	package_t pkg;
-
-	for(offset=0; offset<g_memsize; offset+=MAX_PKG_SZ) {
-
-		retry = 5;
-		while(retry--) {
-
-			if(readMemoryBlock(g_buffer, offset) != HAL_OK) {
-				sendErr(10);
-				return HAL_ERROR;
-			}
-			if(sendBlock(cmd, g_buffer) != HAL_OK) {
-				sendErr(11);
-				return HAL_ERROR;
-			}
-			if(receivePackage(&pkg) != HAL_OK) {
-				return HAL_ERROR;
-			}
-			if(pkg.cmd == CMD_TXRX_OK) {
-				// block successfully received
-				break; // while()
-			}
-		}
-		if(pkg.cmd != CMD_TXRX_OK) { // didn't receive it
-			return HAL_ERROR;
-		}
-	}
-
-	return HAL_OK;
-}
- **/
-
+// TODO: split this...
 
 /* ----------------------------------------------------------------------- */
-#if 1
+#if 0
 
 int write_test()
 {
 	int ret = HAL_OK;
 	uint8_t membuffer[0x2000];
 	extern struct memory_info memory[];
-	uint8_t memsz = memory[g_memtype].size;
+	uint16_t memsz = memory[g_memtype].size;
 
-	HAL_Delay(5000);
+	HAL_Delay(1000);
 	serial_clearScreen();
 	serial_println("About to write entire memory...");
-	HAL_Delay(8000);
+	HAL_Delay(2000);
 	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, LED_ON);
 
 	for(int i=0; i<memsz; ++i)
 		membuffer[i]=(uint8_t)i;
+	membuffer[0x11E0]=0x66;
+	membuffer[0x1E8F]=0x99;//random test
 
 	ret = EEPROM_write(g_memtype, membuffer, 0, memsz);
 /*	for(uint16_t register_address = 0x0000U; register_address < 0x2000U; register_address += 32U)
@@ -427,12 +429,27 @@ int write_test()
 
 	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, LED_OFF);
 
+	char buf[32];
 	if(ret == HAL_OK)
-		serial_println("\r\nDone.");
+		sprintf(buf, "\r\nDone.");
 	else
-		serial_println("\r\nERROR WRITING MEMORY.");
+		sprintf(buf, "\r\nERROR %d WRITING MEMORY.", ret);
+	serial_println(buf);
 
 	return ret;
+}
+
+void print_writeProtectRegister() {
+	uint8_t reg = 0;
+	char buf[32];
+	int ret = EEPROM_read_reg(MEMTYPE_X24645, &reg, 0x1FFF);
+	if(ret == HAL_OK) {
+		sprintf(buf, "Register WPR is 0x%02X", reg );
+		serial_println(buf);
+	}
+	else {
+		serial_println("Can't read register WPR");
+	}
 }
 
 int read_test()
@@ -444,10 +461,11 @@ int read_test()
 	extern struct memory_info memory[];
 	uint8_t pagesz = memory[g_memtype].pageSz;
 
-	HAL_Delay(5000);
+	HAL_Delay(1500);
 	serial_clearScreen();
+	if(g_memtype == MEMTYPE_X24645) print_writeProtectRegister();
 	serial_println("About to read entire memory...\r\n");
-	HAL_Delay(8000);
+	HAL_Delay(2000);
 	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, LED_ON);
 
 
@@ -474,10 +492,12 @@ int read_test()
 	}
 
 	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, LED_OFF);
+
 	if(ret == HAL_OK)
-		serial_println("\r\nDone.");
+		sprintf(buf, "\r\nDone.");
 	else
-		serial_println("\r\nERROR READING MEMORY.");
+		sprintf(buf, "\r\nERROR %d READING MEMORY.", ret);
+	serial_println(buf);
 
 	return ret;
 }
@@ -487,7 +507,7 @@ void i2c_scanner(int startAddress)
 	char buf[64] = "";
 	int dev, ret;
 	HAL_Delay(5000);
-	serial_println("Starting I2C scan...");
+	serial_println("\r\nStarting I2C scan...");
 	HAL_Delay(1000);
 	for(dev=startAddress; dev<128; ++dev)
 	{
@@ -501,7 +521,7 @@ void i2c_scanner(int startAddress)
 		}
 	}
 
-	serial_println("Done!");
+	serial_println("Done!\r\n");
 }
 
 #endif

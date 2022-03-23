@@ -20,7 +20,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 # Disable debug messages for release builds
 # evaluate only when "release" is defined of the two options "debug" and "release"
-#CONFIG(release, debug|release):DEFINES += QT_NO_DEBUG_OUTPUT
+CONFIG(release, debug|release):DEFINES += QT_NO_DEBUG_OUTPUT
 DEFINES += QT_NO_DEBUG_OUTPUT
 
 # You can also make your code fail to compile if you use deprecated APIs.

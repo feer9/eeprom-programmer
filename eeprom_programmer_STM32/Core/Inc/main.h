@@ -81,7 +81,9 @@ enum PACKED commands_e {
 	CMD_READMEM			= 0x60, /* Specifies which memory is required, and start TX process */
 	CMD_READNEXT		= 0x61, /* Request to send next block */
 
-	CMD_MEMDATA         = 0x70, /* Data is being sent over */
+	CMD_MEMDATA			= 0x70, /* Data is being sent over */
+	CMD_DATA			= 0x71, /* Simple 1byte data command */
+	CMD_INFO			= 0x72, /* PKG_DATA_MAX bytes of text */
 
 	/* get data from pc and write to eeprom */
 	CMD_WRITEMEM		= 0x80
@@ -113,6 +115,7 @@ enum PACKED errorcode_e {
 	ERROR_UNKNOWN,   /* Implies CMD_DISCONNECT */
 	ERROR_MEMID,
 	ERROR_READMEM,
+	ERROR_WRITEMEM,
 	ERROR_COMM,
 	ERROR_MAX_RETRY, /* Implies CMD_DISCONNECT */
 	ERROR_TIMEOUT,   /* Implies CMD_DISCONNECT */
@@ -152,6 +155,13 @@ int EEPROM_read(memtype_t device, uint8_t *buffer, uint16_t register_base, uint1
 int EEPROM_read_page(memtype_t device, uint8_t *pagebuffer, uint16_t register_address);
 int EEPROM_read_reg(memtype_t device, uint8_t *reg, uint16_t register_address);
 
+int MEMX24645_write_page(const uint8_t *page, uint16_t register_address);
+int MEMX24645_write(const uint8_t *buffer, uint16_t register_base, uint16_t size);
+int MEMX24645_write_reg(uint8_t reg, uint16_t register_address);
+int MEMX24645_read_reg(uint8_t *reg, uint16_t register_address);
+int MEMX24645_read_page(uint8_t *page, uint16_t register_address);
+int MEMX24645_read(uint8_t *buf, uint16_t register_base, uint16_t size);
+
 int serial_write(const uint8_t *data, uint16_t len);
 int serial_writebyte(uint8_t byte);
 int serial_read(uint8_t *data, uint16_t len);
@@ -169,7 +179,7 @@ int write_test();
 int readMemory(uint8_t *);
 int readMemoryBlock(uint8_t *membuffer, uint16_t offset);
 int saveMemory(const uint8_t *);
-int saveMemoryBlock(const uint8_t *membuffer, int offset);
+int saveMemoryBlock(const uint8_t *membuffer, uint16_t offset);
 
 HAL_StatusTypeDef sendErr(uint8_t);
 HAL_StatusTypeDef sendOK(void);

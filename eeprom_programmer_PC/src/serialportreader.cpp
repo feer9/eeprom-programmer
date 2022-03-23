@@ -51,8 +51,8 @@ void SerialPortReader::handleError(QSerialPort::SerialPortError serialPortError)
 
 void SerialPortReader::handleReadyRead()
 {
-	qDebug() << QObject::tr("Received %1 bytes of data")
-						.arg(m_serialPort->bytesAvailable());
+//	qDebug() << QObject::tr("Received %1 bytes of data")
+//						.arg(m_serialPort->bytesAvailable());
 
 	QByteArray recv = m_serialPort->readAll();
 	m_received += recv.length();
@@ -131,11 +131,11 @@ void SerialPortReader::processRx(void)
 		if(pkg_ready)
 		{
 			if(m_readData.isEmpty()) {
-				qDebug("No more data, stopping Rx timer");
+//				qDebug("No more data, stopping Rx timer");
 				m_timer.stop();
 			}
 			else {
-				qDebug("More data coming, not stoping timer");
+//				qDebug("More data coming, not stoping timer");
 			}
 			emit packageReady(&m_pkg);
 			pkg_ready = false;

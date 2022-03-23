@@ -18,6 +18,8 @@ int EEPROM::cmdHasData(commands_e command) {
 	case CMD_READMEM: return 1;
 	case CMD_READNEXT: return 0;
 	case CMD_MEMDATA: return PKG_DATA_MAX;
+	case CMD_DATA: return 1;
+	case CMD_INFO: return PKG_DATA_MAX;
 
 	case CMD_WRITEMEM: return 0;
 
@@ -45,6 +47,7 @@ QString EEPROM::getErrorMsg(errorcode_e err) {
 	case ERROR_UNKNOWN:   return QString("Unknown error");
 	case ERROR_MEMID:     return QString("Invalid memory ID");
 	case ERROR_READMEM:   return QString("Error reading memory");
+	case ERROR_WRITEMEM:  return QString("Error writing memory");
 	case ERROR_COMM:      return QString("Communication error");
 	case ERROR_MAX_RETRY: return QString("Too many failed attempts");
 	case ERROR_TIMEOUT:   return QString("Timeout reached");
@@ -73,6 +76,8 @@ QString EEPROM::getCommandName(commands_e cmd) {
 	case CMD_READNEXT:		return QString("ReadNext");
 	case CMD_MEMDATA:		return QString("MemoryData");
 	case CMD_WRITEMEM:		return QString("WriteMemory");
+	case CMD_DATA:			return QString("Data");
+	case CMD_INFO:			return QString("Info");
 	}
 	return QString("Unregistered_command");
 }

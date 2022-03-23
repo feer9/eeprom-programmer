@@ -1,5 +1,23 @@
-#include "app.h"
+/*
+ *  EEPROM-Programmer - Read and write EEPROM memories.
+ *  Copyright (C) 2022  Fernando Coda <fcoda@pm.me>
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License along
+ *  with this program; if not, write to the Free Software Foundation, Inc.,
+ *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 
+#include "app.h"
 
 
 App::App(int &argc, char **argv, FILE* outStream)
@@ -47,11 +65,11 @@ void App::setSignals()
 void App::setCommandLineOptions(QCommandLineParser& parser)
 {
 	App::setApplicationName("EEPROM Programmer");
-	App::setApplicationVersion("1.0");
+	App::setApplicationVersion("2.0-rc1");
 	parser.setApplicationDescription("Read and write EEPROM memories.");
 
 	parser.addOption({{"h", "help"},
-					 "Displays help on commandline options."});
+					  "Displays help on commandline options."});
 	parser.addVersionOption();
 
 	parser.addOptions({
@@ -62,9 +80,9 @@ void App::setCommandLineOptions(QCommandLineParser& parser)
 			{{"f", "file"},
 							"Read from / write to <file>.", "file"},
 			{{"p", "port"},
-							"Select the serial port to connect.", "port"},
+							"Connect to serial port <port>.", "port"},
 			{{"b", "baudrate"},
-							"Set the desired baudrate.", "baudrate"},
+							"Set the serial port baudrate to <baudrate>.", "baudrate"},
 		});
 
 	parser.addPositionalArgument("target", "24LC16 - X24645 - 24LC64 - 24LC256");
@@ -103,12 +121,12 @@ bool App::configure() {
 	}
 
 	if(parser.isSet("write")) {
-		setOperation(CMD_WRITEMEM);
+		setNextOperation(OP_TX);
 		if(!targetFile.isNull())
 			setInputFilename(targetFile);
 	}
 	else if(parser.isSet("read")) {
-		setOperation(CMD_READMEM);
+		setNextOperation(OP_RX);
 		if(!targetFile.isNull())
 			setOutputFilename(targetFile);
 	}
@@ -153,7 +171,7 @@ void App::setOutputFilename(const QString &newFilename_out)
 	m_filename_out = newFilename_out;
 }
 
-void App::setOperation(int newOperation)
+void App::setNextOperation(operations_e newOperation)
 {
-	m_requestedOperation = newOperation;
+	m_nextOperation = newOperation;
 }

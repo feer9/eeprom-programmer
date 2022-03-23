@@ -31,12 +31,21 @@ public:
 		QSerialPort::Parity parity				= QSerialPort::NoParity;
 		QSerialPort::StopBits stopbits			= QSerialPort::OneStop;
 		QSerialPort::FlowControl flowcontrol	= QSerialPort::NoFlowControl;
-	} ;
+	};
 
-	enum modes_e {
-		MODE_NONE,
-		MODE_TX,
-		MODE_RX
+	enum operations_e {
+		OP_NONE = CMD_NONE,
+		OP_PING = CMD_PING,
+		OP_TX = CMD_WRITEMEM,
+		OP_RX = CMD_READMEM
+	};
+
+	enum comm_states_e {
+		COMM_IDLE,
+		COMM_READMEM_WAIT_OK,
+		COMM_READMEM_WAIT_DATA,
+		COMM_WRITEMEM_WAIT_OK,
+		COMM_WRITEMEM_WAIT_ACK
 	};
 
 protected:
@@ -57,6 +66,8 @@ protected:
 private:
 	void setSignals();
 	void packageReady(package_t *pkg);
+	bool sendMemoryBlock();
+	void setPackageError(package_t *pkg, errorcode_e err);
 
 signals:
 
@@ -76,10 +87,12 @@ private:
 	commands_e m_lastTxCmd = CMD_NONE;
 	commands_e m_lastRxCmd = CMD_NONE;
 	QByteArray m_buffer;
+	QByteArray m_memBuffer;
+	int m_memindex = 0;
 	pkgdata_t m_pkg;
 
-	modes_e m_xferMode = MODE_NONE;
-	uint8_t m_xferState = 0;
+	operations_e m_operation = OP_NONE;
+	comm_states_e m_commState = COMM_IDLE;
 
 	QByteArray m_pending;
 

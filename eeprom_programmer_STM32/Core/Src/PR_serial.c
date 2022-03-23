@@ -20,11 +20,7 @@ int serial_clearScreen(void) {
 
 static int write(const uint8_t *data, uint16_t sz)
 {
-	int ret = USBD_FAIL;
-
-	while ( (ret = CDC_Transmit_FS((uint8_t *) data, sz)) == USBD_BUSY );
-
-	return ret;
+	return (int) CDC_Transmit_FS((uint8_t *) data, sz);
 }
 
 int serial_write(const uint8_t *data, uint16_t len)
@@ -32,7 +28,7 @@ int serial_write(const uint8_t *data, uint16_t len)
 	uint32_t tstart = HAL_GetTick();
 	int ret = USBD_FAIL;
 
-	while(ret != USBD_OK && (HAL_GetTick()-tstart) < 1000)
+	while(ret != USBD_OK && (HAL_GetTick()-tstart) < 200)
 		ret = write(data, len);
 
 	return ret;
@@ -70,7 +66,7 @@ int serial_read(uint8_t *buffer, uint16_t len)
 	uint32_t tstart = HAL_GetTick();
 	uint16_t bytesRemaining = len;
 
-	while(bytesRemaining > 0 && (HAL_GetTick()-tstart) < 1000)
+	while(bytesRemaining > 0 && (HAL_GetTick()-tstart) < 200)
 	{
 		uint16_t bytesToRead = bytesRemaining > HL_RX_BUFFER_SIZE ?
 				HL_RX_BUFFER_SIZE : bytesRemaining;
@@ -93,11 +89,15 @@ int serial_readbyte(uint8_t *byte)
 }
 
 int serial_println(const char *s) {
-	int err = write((uint8_t *) s, strlen(s));
+	int err = serial_write((uint8_t *) s, strlen(s));
 	if(!err) {
-		err = write((uint8_t *) "\r\n", 2);
+		err = serial_write((uint8_t *) "\r\n", 2);
 	}
 	return err;
+}
+
+int serial_print(const char *s) {
+	return serial_write((uint8_t *) s, strlen(s));
 }
 
 #else // UART

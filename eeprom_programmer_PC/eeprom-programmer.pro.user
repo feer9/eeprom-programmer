@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 6.0.2, 2022-03-20T22:37:06. -->
+<!-- Written by QtCreator 6.0.2, 2022-03-23T00:50:34. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -245,7 +245,7 @@
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">eeprom-programmer2</value>
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">Qt4ProjectManager.Qt4RunConfiguration:/home/feer/coding/stm32/STM32CubeIDE/eeprom-programmer/eeprom_programmer_PC/eeprom-programmer.pro</value>
     <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">/home/feer/coding/stm32/STM32CubeIDE/eeprom-programmer/eeprom_programmer_PC/eeprom-programmer.pro</value>
-    <value type="QString" key="RunConfiguration.Arguments">X24645 -r</value>
+    <value type="QString" key="RunConfiguration.Arguments">X24645 -w</value>
     <value type="bool" key="RunConfiguration.UseCppDebugger">false</value>
     <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
     <value type="bool" key="RunConfiguration.UseLibrarySearchPath">true</value>

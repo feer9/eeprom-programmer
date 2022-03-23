@@ -10,8 +10,6 @@
 #include <QCommandLineParser>
 #include <QFile>
 
-
-
 class App: public MemoryComm
 {
 
@@ -19,14 +17,21 @@ public:
 	App(int &argc, char **argv, FILE* outStream = stdout);
 	~App();
 
-
-	void setOperation(int newOperation);
 	void setOutputFilename(const QString &newFilename_out);
 	void setInputFilename(const QString &newFilename_in);
+	void setNextOperation(operations_e newOperation);
 
 	const QString &getInputFilename() const;
 	const QString &getOutputFilename() const;
 
+	enum app_states_e {
+		ST_DISCONNECTED,
+		ST_INIT,
+		ST_IDLE,
+		ST_PING,
+		ST_WAIT_READMEM,
+		ST_WAIT_WRITEMEM
+	};
 
 private slots:
 	void handleTimeout(void);
@@ -39,7 +44,6 @@ private:
 	void printError(pkgdata_t *pkg);
 	bool configure(void);
 
-
 	void printData(void);
 	virtual bool saveData(void);
 	virtual void reconnect();
@@ -49,14 +53,17 @@ private:
 	QByteArray m_memBuffer;
 	QTimer m_pingTimer;
 
-	int m_xferState = 0;
+	app_states_e  m_xferState = ST_DISCONNECTED;
 	bool m_connected = false;
-	int m_requestedOperation = 0;
+	// Use two variables so we can change one without affecting
+	// the other (new requests will go to m_nextOperation).
+	operations_e m_currentOperation = OP_NONE;
+	operations_e m_nextOperation    = OP_NONE;
 
-	QString m_filename_in = "mem_in.bin";
+	QString m_filename_in  = "mem_in.bin";
 	QString m_filename_out = "mem_out.bin";
 	void setSignals();
-	void doStuff();
+	bool doSomething();
 };
 
 // m_ = member
