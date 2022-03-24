@@ -26,8 +26,6 @@ Supported I2C memories are:
 - 24LC16
 - 24LC64
 - X24645
-
-Next one in the list:
 - 24LC256
 
 ### Memory electrical connections
