@@ -53,9 +53,8 @@ enum memtype_e {
 // 24LC256 NOT SUPPORTED!!!
 typedef enum memtype_e memtype_t;
 
-extern uint32_t g_memsize;
+extern uint16_t g_memsize;
 extern enum memtype_e g_memtype;
-//extern uint8_t membuffer[];
 extern uint8_t g_buffer[];
 
 extern I2C_HandleTypeDef hi2c2;
@@ -148,19 +147,15 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
 
-int EEPROM_write(memtype_t device, const uint8_t *buffer, uint16_t register_base, uint16_t size);
-int EEPROM_write_page(memtype_t device, const uint8_t *pagebuffer, uint16_t register_address);
-int EEPROM_write_reg(memtype_t device, uint8_t reg, uint16_t register_address);
-int EEPROM_read(memtype_t device, uint8_t *buffer, uint16_t register_base, uint16_t size);
-int EEPROM_read_page(memtype_t device, uint8_t *pagebuffer, uint16_t register_address);
-int EEPROM_read_reg(memtype_t device, uint8_t *reg, uint16_t register_address);
 
-int MEMX24645_write_page(const uint8_t *page, uint16_t register_address);
-int MEMX24645_write(const uint8_t *buffer, uint16_t register_base, uint16_t size);
-int MEMX24645_write_reg(uint8_t reg, uint16_t register_address);
-int MEMX24645_read_reg(uint8_t *reg, uint16_t register_address);
-int MEMX24645_read_page(uint8_t *page, uint16_t register_address);
-int MEMX24645_read(uint8_t *buf, uint16_t register_base, uint16_t size);
+HAL_StatusTypeDef EEPROM_InitMemory(enum memtype_e dev_id);
+uint16_t EEPROM_getMemSize(enum memtype_e memtype);
+int EEPROM_write(memtype_t device, const uint8_t *buffer, uint16_t register_base, uint16_t size);
+int EEPROM_writePage(memtype_t device, const uint8_t *pagebuffer, uint16_t register_address);
+int EEPROM_writeReg(memtype_t device, uint8_t reg, uint16_t register_address);
+int EEPROM_read(memtype_t device, uint8_t *buffer, uint16_t register_base, uint16_t size);
+int EEPROM_readPage(memtype_t device, uint8_t *pagebuffer, uint16_t register_address);
+int EEPROM_readReg(memtype_t device, uint8_t *reg, uint16_t register_address);
 
 int serial_write(const uint8_t *data, uint16_t len);
 int serial_writebyte(uint8_t byte);
@@ -194,8 +189,6 @@ HAL_StatusTypeDef sendCommand(uint8_t cmd);
 HAL_StatusTypeDef sendPackage(uint8_t cmd, uint8_t *data, uint16_t len);
 HAL_StatusTypeDef receivePackage(package_t *pkg);
 HAL_StatusTypeDef try_receive(package_t *pkg);
-
-uint32_t getMemSize(enum memtype_e memtype);
 
 /* USER CODE END EFP */
 

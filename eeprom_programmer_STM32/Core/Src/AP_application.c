@@ -23,21 +23,23 @@
 /*
  * Electrical connections:
  *
- * I2C2:
- * 	 SCL: PB10
- * 	 SDA: PB11
+ * uC I2C2:
+ * 	 PB10: SCL
+ * 	 PB11: SDA
  *
  * EEPROM (DIP-8):
- * 	 1: GND
- * 	 2: GND
- * 	 3: VCC
- * 	 4: GND
- * 	 5: SDA
- * 	 6: SCL
- * 	 7: GND
- * 	 8: VCC
+ * 	 1.  A0: GND
+ * 	 2.  A1: GND
+ * 	 3.  A2: VCC
+ * 	 4. Vss: GND
+ * 	 5. SDA: SDA
+ * 	 6. SCL: SCL
+ * 	 7.  WP: GND
+ * 	 8. Vcc: Vcc
  *
- * Add a  10kohm pullup resistor on SCL and SDA
+ * Add a pullup resistor on SCL and SDA.
+ * For 100kHz as used here, 10kOhm should do.
+ * If changed to 400kHz or 1MHz, use a 2kOhm resistor (or similar)
  */
 
 #define SEND(x) do {if((x) != HAL_OK) return HAL_ERROR;} while(0)
@@ -45,8 +47,6 @@
 
 static int cmdHasData(uint8_t command);
 
-enum memtype_e g_memtype = MEMTYPE_NONE;
-uint32_t       g_memsize = 0UL;
 uint8_t        g_buffer[PKG_DATA_MAX];
 
 
@@ -152,7 +152,6 @@ int cmdHasData(command_t command) {
 	return 0;
 }
 
-
 static errorcode_t sendMemoryBlock(uint8_t cmd, uint16_t offset)
 {
 //	package_t pkg;
@@ -215,11 +214,11 @@ void uart_fsm(void)
 	static uint16_t mem_idx = 0;
 	HAL_StatusTypeDef ret;
 
-	if(HAL_GetTick() > timeout) {
-		if(st != 0) {
+	if(st != 0 && HAL_GetTick() > timeout) {
+
 			sendErr(ERROR_TIMEOUT);
 			st = 0;
-		}
+
 	}
 
 	switch (st)
@@ -233,8 +232,24 @@ void uart_fsm(void)
 			if(package.cmd == CMD_INIT) {
 				sendCommand(CMD_INIT);
 				led_on();
-				st++;
+				st = CMD_MEMID;
 				timeout = HAL_GetTick()+TIMEOUT_MS;
+			}
+		}
+		break;
+
+	case CMD_MEMID:
+		ret = receivePackage(&package);
+		if(ret == HAL_OK && package.cmd == CMD_MEMID)
+		{
+			enum memtype_e memid = package.data[0];
+			if(EEPROM_InitMemory(memid) == HAL_OK) {
+				sendCommand(CMD_OK);
+				st = 1;
+			}
+			else {
+				sendErr(ERROR_MEMID);
+				st = 0;
 			}
 		}
 		break;
@@ -375,11 +390,6 @@ void uart_fsm(void)
 	case CMD_PING:
 		sendCommand(CMD_TXRX_ACK);
 		timeout = HAL_GetTick()+TIMEOUT_MS;
-		st = 1;
-		break;
-
-	case CMD_MEMID:
-		sendCommandWithData(CMD_DATA, g_memtype);
 		st = 1;
 		break;
 

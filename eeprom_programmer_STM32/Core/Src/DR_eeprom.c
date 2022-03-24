@@ -11,13 +11,15 @@
 
 struct memory_info
 memory[MEMTYPE_mAX] = {
-	{0,0,0,0},                 // MEMTYPE_NONE
+// address7; size  ;pageSz;addrSz;
+	{    0,       0,   0,  0}, // MEMTYPE_NONE
 	{0x50U, 0x0800U, 16U, 1U}, // MEMTYPE_24LC16
 	{0x54U, 0x2000U, 32U, 2U}, // MEMTYPE_24LC64
 	{0x00U, 0x2000U, 32U, 1U}, // MEMTYPE_X24645
-	{    0, 0x8000U,   0,  0}  // MEMTYPE_24LC256 (unknown yet)
-//address7; size  ;pageSz;addrSz;
+	{0x54U, 0x8000U, 64U, 2U}  // MEMTYPE_24LC256
 };
+enum memtype_e g_memtype = MEMTYPE_NONE;
+uint16_t       g_memsize = 0U;
 
 
 // Memory pin 1: GND - pin 2: GND - pin 3: VCC
@@ -43,6 +45,9 @@ static uint16_t getDevAddress(memtype_t device, uint16_t register_address)
 	case MEMTYPE_X24645:
 		DevAddress = DevAddress | ((register_address >> 8) & 0x1FU);
 		break;
+	case MEMTYPE_24LC256:
+		// This is constant, just the 7bit address
+		break;
 	default:
 		break;
 	}
@@ -57,7 +62,7 @@ static int write_aux(memtype_t device, const uint8_t *buffer, uint16_t register_
 	int ret = HAL_ERROR;
 	uint32_t timeout = HAL_GetTick() + 20;
 	// 24LC64 memory takes 5 ms to perform a page write cycle;
-	// max 32 bytes at 100kHz should take about 3.5 ms
+	// with a max page size of 64 bytes at 100kHz should take about 6.7 ms
 
 	uint16_t DevAddress = getDevAddress(device, register_address);
 	uint16_t MemAddress = register_address;
@@ -75,12 +80,12 @@ static int write_aux(memtype_t device, const uint8_t *buffer, uint16_t register_
 	return ret;
 }
 
-int EEPROM_write_reg(memtype_t device, uint8_t reg, uint16_t register_address)
+int EEPROM_writeReg(memtype_t device, uint8_t reg, uint16_t register_address)
 {
 	return write_aux(device, &reg, register_address, 1);
 }
 
-int EEPROM_write_page(memtype_t device, const uint8_t *page, uint16_t register_address)
+int EEPROM_writePage(memtype_t device, const uint8_t *page, uint16_t register_address)
 {
 	uint16_t size = memory[device].pageSz;
 	return write_aux(device, page, register_address, size);
@@ -96,7 +101,7 @@ int EEPROM_write(memtype_t device, const uint8_t *buffer, uint16_t register_base
 	for(register_address = register_base; register_address < register_top; register_address += page_size)
 	{
 		int memindex = register_address - register_base;
-		if( (ret=EEPROM_write_page(device, &buffer[memindex], register_address)) != HAL_OK)
+		if( (ret=EEPROM_writePage(device, &buffer[memindex], register_address)) != HAL_OK)
 			break;
 	}
 
@@ -122,7 +127,7 @@ static int read_aux(uint16_t DevAddress, uint16_t MemAddress, uint16_t MemAddSz,
 	return ret;
 }
 
-int EEPROM_read_page(memtype_t device, uint8_t *page, uint16_t register_address)
+int EEPROM_readPage(memtype_t device, uint8_t *page, uint16_t register_address)
 {
 	uint16_t DevAddress = getDevAddress(device, register_address);
 	uint16_t MemAddress = register_address;
@@ -144,7 +149,7 @@ int EEPROM_read(memtype_t device, uint8_t *buf, uint16_t register_base, uint16_t
 	return read_aux(DevAddress, MemAddress, MemAddSz, buf, Size, Timeout);
 }
 
-int EEPROM_read_reg(memtype_t device, uint8_t *reg, uint16_t register_address)
+int EEPROM_readReg(memtype_t device, uint8_t *reg, uint16_t register_address)
 {
 	uint16_t DevAddress = getDevAddress(device, register_address);
 	uint16_t MemAddress = register_address;
@@ -157,19 +162,37 @@ int EEPROM_read_reg(memtype_t device, uint8_t *reg, uint16_t register_address)
 
 /*************************************************************************************************/
 
-void MEMX24645_enableWriteAccess()
+static HAL_StatusTypeDef MEMX24645_enableWriteAccess(void)
 {
-	if(HAL_OK != EEPROM_write_reg(MEMTYPE_X24645, 0x02, 0x1FFF)) {
-		while(1); // Do not continue
-	}
+	return EEPROM_writeReg(MEMTYPE_X24645, 0x02, 0x1FFF);
 }
 
-uint32_t getMemSize(enum memtype_e memtype)
+uint16_t EEPROM_getMemSize(enum memtype_e memtype)
 {
 	return memory[memtype].size;
 }
 
-static int query_devices(void)
+static HAL_StatusTypeDef verify_device(enum memtype_e dev_id)
+{
+	uint16_t addr = memory[dev_id].address7 << 1;
+	return HAL_I2C_IsDeviceReady(&hi2c2, addr, 1000U, 50U);
+}
+
+HAL_StatusTypeDef EEPROM_InitMemory(enum memtype_e dev_id)
+{
+	HAL_StatusTypeDef status = verify_device(dev_id);
+	if(status == HAL_OK)
+	{
+		if(dev_id == MEMTYPE_X24645)
+			status = MEMX24645_enableWriteAccess();
+		if(status == HAL_OK) {
+			g_memtype = dev_id;
+			g_memsize = EEPROM_getMemSize(dev_id);
+		}
+	}
+	return status;
+}
+/*static HAL_StatusTypeDef query_devices(void)
 {
 	int status = HAL_ERROR;
 
@@ -190,15 +213,12 @@ void EEPROM_Init()
 	while(query_devices() != HAL_OK)
 		HAL_Delay(10);
 
-	g_memsize = getMemSize(g_memtype);
+	g_memsize = EEPROM_getMemSize(g_memtype);
 
 	if(g_memtype == MEMTYPE_X24645) {
 		MEMX24645_enableWriteAccess();
 	}
-}
-
-
-
+}*/
 
 /*
  * 	Note from 24LC16 datasheet:
@@ -221,63 +241,3 @@ void EEPROM_Init()
 	operations that would attempt to cross a
 	page boundary.
  * */
-
-
-#if 0
-/* -------------------- MEM24LC16 -------------------- */
-// 24LC16 MEMORY PAGES ARE ONLY 16 BYTES LONG !!!
-int MEM24LC16_write_page(const uint8_t *page, uint16_t register_address)
-{
-	int ret = HAL_OK, attempts = 120; // TODO: tune attempts value
-	uint8_t control_byte = (memaddr7[MEMTYPE_24LC16] | ((register_address >> 8) & 0x07U)) << 1U;
-	uint8_t word_address = register_address & 0xFFU;
-
-
-	while(--attempts &&
-		  ((ret=HAL_I2C_Mem_Write(&hi2c2, control_byte, word_address, 1, (uint8_t *)page, 16, 1000)) != HAL_OK) );
-
-	return ret;
-}
-
-int MEM24LC16_write(const uint8_t *buffer, uint16_t register_base, uint16_t size)
-{
-	int ret = HAL_OK;
-	uint16_t register_top = register_base + size;
-	uint32_t register_address;
-
-	for(register_address = register_base; register_address < register_top; register_address += 16)
-	{
-		if( (ret=MEM24LC16_write_page(&buffer[register_address], register_address)) != HAL_OK)
-			break;
-	}
-
-	return ret;
-}
-
-int MEM24LC16_read_page(uint8_t *page, uint16_t register_address)
-{
-	int ret = HAL_OK, attempts = 10;
-	uint8_t control_byte = (memaddr7[MEMTYPE_24LC16] | ((register_address >> 8) & 0x07U)) << 1U;
-	uint8_t word_address = register_address & 0xFFU;
-
-	while(--attempts &&
-			((ret=HAL_I2C_Mem_Read(&hi2c2, control_byte, word_address, 1, page, 32, 1000)) != HAL_OK) );
-
-	return ret;
-}
-
-int MEM24LC16_read(uint8_t *buf, uint16_t register_base, uint16_t size)
-{
-	int ret = HAL_OK;
-	uint16_t register_top = register_base + size; // ¿-1?
-	uint32_t register_address;
-
-	for(register_address = register_base; register_address < register_top; register_address += MEM24LC16_PAGE_SZ)
-	{
-		if ((ret=MEM24LC16_read_page(&buf[register_address], register_address)) != HAL_OK)
-			break;
-	}
-
-	return ret;
-}
-#endif

@@ -33,8 +33,7 @@ int saveMemoryBlock(const uint8_t *data, uint16_t offset)
 	status = readMemoryBlock(tmpbuf, offset);
 	if(status != HAL_OK)
 		return status;
-	for(uint16_t i=0; i<PKG_DATA_MAX; ++i)
-		if(data[i] != tmpbuf[i])
-			return ERROR_WRITEMEM;
+	if(memcmp(data, tmpbuf, PKG_DATA_MAX) != 0)
+		return ERROR_WRITEMEM;
 	return HAL_OK;
 }

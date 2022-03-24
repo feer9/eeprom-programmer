@@ -76,6 +76,7 @@ bool App::doSomething()
 		if(!App::writeMem()) {
 			m_currentOperation = OP_NONE;
 			m_xferState = ST_IDLE;
+			QCoreApplication::exit(1);
 		}
 		break;
 
@@ -100,6 +101,14 @@ bool App::doSomething()
 	return m_currentOperation != OP_NONE;
 }
 
+void App::retryConnection()
+{
+	clearBuffers();
+	m_xferState = ST_DISCONNECTED;
+	m_connected = false;
+	QTimer::singleShot(1000, this, &App::reconnect);
+}
+
 void App::handleXfer(pkgdata_t *pkg) {
 	// TODO: handle error packages
 
@@ -119,13 +128,26 @@ void App::handleXfer(pkgdata_t *pkg) {
 		if(pkg->cmd == CMD_INIT) {
 			m_standardOutput << "Connected to uC." << Qt::endl;
 			m_connected = true;
+			m_xferState = ST_MEMID;
+			sendCommand_memid();
+		}
+		else {
+			m_standardOutput << "Could not connect to uC" << Qt::endl;
+			retryConnection();
+		}
+		break;
+
+	case ST_MEMID:
+		if(!pkg)
+			break;
+
+		if(pkg->cmd == CMD_OK) {
 			m_xferState = ST_IDLE;
 			doSomething();
 		}
 		else {
-			m_standardOutput << "Could not connect to uC" << Qt::endl;
-			clearBuffers();
-			m_xferState = ST_DISCONNECTED;
+			printError(pkg);
+			QCoreApplication::exit(1);
 		}
 		break;
 
@@ -144,8 +166,7 @@ void App::handleXfer(pkgdata_t *pkg) {
 		}
 		else {
 			m_standardOutput << "Connection error" << Qt::endl;
-			m_connected = false;
-			m_xferState = ST_DISCONNECTED;
+			retryConnection();
 		}
 		break;
 
@@ -154,19 +175,21 @@ void App::handleXfer(pkgdata_t *pkg) {
 		if(!pkg)
 			break;
 
+		m_currentOperation = OP_NONE;
 		if(pkg->cmd == CMD_MEMDATA) {
 			// finished receiving memory data
 			m_memBuffer = pkg->data;
 			printData();
 			saveData();
-			m_currentOperation = OP_NONE;
+			m_xferState = ST_IDLE;
+			QTimer::singleShot(50, qApp, SLOT(quit()));
 		}
 		else {
 			printError(pkg);
+			setNextOperation(OP_RX);
+			doSomething();
 		}
-		clearBuffers();
-		m_xferState = ST_IDLE;
-QTimer::singleShot(50, qApp, SLOT(quit()));
+//		clearBuffers();
 		break;
 
 	case ST_WAIT_WRITEMEM: // requested eeprom full write - waiting confirmation
@@ -174,16 +197,18 @@ QTimer::singleShot(50, qApp, SLOT(quit()));
 		if(!pkg)
 			break;
 
+		m_currentOperation = OP_NONE;
 		if(pkg->cmd == CMD_TXRX_DONE) {
 			m_standardOutput << "Memory write SUCCESSFULLY" << Qt::endl;
-			m_currentOperation = OP_NONE;
+			m_xferState = ST_IDLE;
+			QTimer::singleShot(50, qApp, SLOT(quit()));
 		}
 		else {
 			printError(pkg);
+			setNextOperation(OP_TX);
+			doSomething();
 		}
-		clearBuffers();
-		m_xferState = ST_IDLE;
-QTimer::singleShot(50, qApp, SLOT(quit()));
+//		clearBuffers();
 		break;
 
 	default:

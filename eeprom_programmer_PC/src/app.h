@@ -28,6 +28,7 @@ public:
 		ST_DISCONNECTED,
 		ST_INIT,
 		ST_IDLE,
+		ST_MEMID,
 		ST_PING,
 		ST_WAIT_READMEM,
 		ST_WAIT_WRITEMEM
@@ -64,6 +65,7 @@ private:
 	QString m_filename_out = "mem_out.bin";
 	void setSignals();
 	bool doSomething();
+	void retryConnection();
 };
 
 // m_ = member

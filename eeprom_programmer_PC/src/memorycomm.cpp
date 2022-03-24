@@ -123,6 +123,7 @@ bool MemoryComm::writeMem(const QByteArray& memBuffer) {
 	m_memindex = 0;
 	m_memBuffer = memBuffer; // CHECK HOW THIS WORKS
 
+	m_buffer.clear();
 	m_serialPortReader.clearBuffer();
 	m_serialPort.clear(QSerialPort::Input);
 
@@ -135,6 +136,11 @@ bool MemoryComm::sendMemoryBlock() {
 
 	return sendCommand(CMD_MEMDATA, m_memBuffer.mid(memidx, PKG_DATA_MAX));
 }
+
+bool MemoryComm::sendCommand_memid() {
+	return sendCommand(CMD_MEMID, m_memtype);
+}
+
 
 bool MemoryComm::sendCommand_ping(void) {
 	return sendCommand(CMD_PING);

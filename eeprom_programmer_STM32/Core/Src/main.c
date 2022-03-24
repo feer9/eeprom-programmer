@@ -91,7 +91,7 @@ int main(void)
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
   led_off();
-  EEPROM_Init();
+//  EEPROM_Init();
 
   /* USER CODE END 2 */
 

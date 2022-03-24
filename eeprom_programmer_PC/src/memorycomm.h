@@ -54,6 +54,7 @@ protected:
 	bool writeMem(const QByteArray& memBuffer);
 	bool readMem(void);
 	bool sendCommand_ping(void);
+	bool sendCommand_memid(void);
 	bool sendCommand(commands_e cmd);
 	bool sendCommand(commands_e cmd, uint8_t data);
 	bool sendCommand(commands_e cmd, const QByteArray& data);
