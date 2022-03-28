@@ -196,6 +196,8 @@ static int8_t CDC_DeInit_FS(void)
 static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 {
   /* USER CODE BEGIN 5 */
+  (void) length;
+
   switch(cmd)
   {
     case CDC_SEND_ENCAPSULATED_COMMAND:
@@ -295,7 +297,6 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
 
   uint8_t len = (uint8_t) *Len; // Get length
-
   uint16_t tempHeadPos = rxBufferHeadPos; // Increment temp head pos while writing, then update main variable when complete
 
   for (uint32_t i = 0; i < len; i++) {
@@ -379,7 +380,7 @@ uint8_t CDC_PeekRxBuffer_FS(uint8_t* Buf, uint16_t Len) {
     return USB_CDC_RX_BUFFER_NO_DATA;
 
   for (uint8_t i = 0; i < Len; i++) {
-    Buf[i] = rxBuffer[rxBufferTailPos]; // Get data without incrementing the tail position
+    Buf[i] = rxBuffer[(rxBufferTailPos + i) % HL_RX_BUFFER_SIZE]; // Get data without incrementing the tail position
   }
 
   return USB_CDC_RX_BUFFER_OK;
@@ -423,5 +424,3 @@ void CDC_FlushRxBuffer_FS() {
 /**
   * @}
   */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

@@ -1,2 +1,0 @@
-PR_eeprom.c:12:5:readMemory	16	static
-PR_eeprom.c:23:5:saveMemory	16	static

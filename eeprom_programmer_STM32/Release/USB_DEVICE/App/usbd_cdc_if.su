@@ -1,9 +1,0 @@
-usbd_cdc_if.c:182:15:CDC_DeInit_FS	0	static
-usbd_cdc_if.c:292:15:CDC_Receive_FS	24	static
-usbd_cdc_if.c:157:15:CDC_Init_FS	8	static
-usbd_cdc_if.c:339:9:CDC_Transmit_FS	8	static
-usbd_cdc_if.c:388:10:CDC_GetRxBufferBytesAvailable_FS	0	static
-usbd_cdc_if.c:355:9:CDC_ReadRxBuffer_FS	16	static
-usbd_cdc_if.c:375:9:CDC_PeekRxBuffer_FS	16	static
-usbd_cdc_if.c:408:6:CDC_FlushRxBuffer_FS	0	static
-usbd_cdc_if.c:196:15:CDC_Control_FS	8	static
