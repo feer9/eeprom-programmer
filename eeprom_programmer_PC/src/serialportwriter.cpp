@@ -43,49 +43,6 @@ void SerialPortWriter::handleError(QSerialPort::SerialPortError serialPortError)
 	}
 }
 
-/*void SerialPortWriter::finishTxXfer(int status)
-{
-	m_busy = false;
-	m_tries = 0;
-	emit txXferComplete(status);
-}*/
-
-/*void SerialPortWriter::transmitNextPackage()
-{
-	m_tries = 0;
-	m_bytesRemaining -= PKG_DATA_MAX;
-
-	if (m_bytesRemaining == 0)
-	{
-		finishTxXfer(CMD_TXRX_ACK);
-	}
-	else
-	{
-		int pos = m_data.size() - m_bytesRemaining;
-		m_packageData = m_data.mid(pos, PKG_DATA_MAX);
-		sendPackage();
-	}
-}
-
-void SerialPortWriter::targetRxError()
-{
-	if(++m_tries < 3)
-		sendPackage();
-//		send(m_cmd, m_data);
-
-	else
-		finishTxXfer(CMD_TXRX_ERR);
-}
-
-void SerialPortWriter::handleTargetReportRxStatus(int status)
-{
-	if(status == CMD_TXRX_ACK)
-		transmitNextPackage();
-
-	else
-		targetRxError();
-}*/
-
 // QSerialPort callback from signal bytesWritten
 void SerialPortWriter::handleBytesWritten(qint64 bytes)
 {
@@ -155,6 +112,7 @@ qint64 SerialPortWriter::send(commands_e cmd, const QByteArray &data) {
 		m_packageData = data.left(PKG_DATA_MAX);
 		m_bytesRemaining = data.size();
 	}
+	m_packageBytesWritten = 0;
 
 	return sendPackage();
 }

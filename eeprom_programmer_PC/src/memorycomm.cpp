@@ -76,8 +76,9 @@ void MemoryComm::handleAppQuit()
 	if(m_serialPort.isOpen()) {
 		qDebug() << "SerialPort connected. Sending CMD_DISCONNECT...";
 		sendCommand(CMD_DISCONNECT);
-		while( m_serialPortWriter.busy() == true
-			&& m_serialPort.waitForBytesWritten(5000) != false);
+		while(m_serialPortWriter.busy() == true)
+			if(m_serialPort.waitForBytesWritten(100) == false)
+				break;
 		// TODO: this doesn't seems to return on time on linux.
 		// Nor does the signal bytesWritten get emmited.
 		m_serialPort.close();
@@ -85,7 +86,6 @@ void MemoryComm::handleAppQuit()
 	else {
 		qDebug() << "SerialPort not connected.";
 	}
-//	MemoryComm::quit();
 }
 
 #ifdef _WIN32

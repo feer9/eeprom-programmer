@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 6.0.2, 2022-03-27T20:57:38. -->
+<!-- Written by QtCreator 6.0.2, 2022-03-27T21:54:08. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -244,6 +244,7 @@
     <valuelist type="QVariantList" key="PE.EnvironmentAspect.Changes"/>
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">Qt4ProjectManager.Qt4RunConfiguration:/run/media/Datos/git/eeprom-programmer/eeprom_programmer_PC/eeprom-programmer.pro</value>
     <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">/run/media/Datos/git/eeprom-programmer/eeprom_programmer_PC/eeprom-programmer.pro</value>
+    <value type="QString" key="RunConfiguration.Arguments">24LC64 -r</value>
     <value type="bool" key="RunConfiguration.UseCppDebugger">false</value>
     <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
     <value type="bool" key="RunConfiguration.UseLibrarySearchPath">true</value>

@@ -36,13 +36,14 @@ int main(int argc, char *argv[])
 
 	App app(argc, argv);
 
-#ifdef __unix
+#ifdef Q_OS_UNIX
 	// https://github.com/sijk/qt-unix-signals
 	UnixSignalWatcher sigwatch;
 	sigwatch.watchForSignal(SIGINT);
 	sigwatch.watchForSignal(SIGTERM);
 	QObject::connect(&sigwatch, SIGNAL(unixSignal(int)), &app, SLOT(quit()));	
 #endif
+
 	return app.exec();
 }
 

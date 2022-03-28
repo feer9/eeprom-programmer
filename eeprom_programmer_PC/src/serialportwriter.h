@@ -50,7 +50,6 @@ private:
 
 	QTextStream m_standardOutput;
 	QSerialPort *m_serialPort = nullptr;
-	SerialPortReader *m_serialPortReader = nullptr;
 	QTimer m_timer;
 
 	QByteArray m_package;				/* current package with command, data, chksum... */
