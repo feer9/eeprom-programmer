@@ -1,5 +1,8 @@
 #include "app.h"
+#ifdef __unix
 #include "sigwatch.h"
+#endif
+
 
 void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
@@ -27,7 +30,9 @@ void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QS
 
 int main(int argc, char *argv[])
 {
-	qInstallMessageHandler(myMessageOutput);
+#ifndef NDEBUG
+//	qInstallMessageHandler(myMessageOutput);
+#endif
 
 	App app(argc, argv);
 
@@ -36,9 +41,8 @@ int main(int argc, char *argv[])
 	UnixSignalWatcher sigwatch;
 	sigwatch.watchForSignal(SIGINT);
 	sigwatch.watchForSignal(SIGTERM);
-	QObject::connect(&sigwatch, SIGNAL(unixSignal(int)), &app, SLOT(quit()));
+	QObject::connect(&sigwatch, SIGNAL(unixSignal(int)), &app, SLOT(quit()));	
 #endif
-
 	return app.exec();
 }
 

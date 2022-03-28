@@ -20,8 +20,9 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 # Disable debug messages for release builds
 # evaluate only when "release" is defined of the two options "debug" and "release"
-CONFIG(release, debug|release):DEFINES += QT_NO_DEBUG_OUTPUT
-DEFINES += QT_NO_DEBUG_OUTPUT
+CONFIG(release, debug|release): {
+    DEFINES += QT_NO_DEBUG_OUTPUT NDEBUG
+}
 
 # You can also make your code fail to compile if you use deprecated APIs.
 # In order to do so, uncomment the following line.
@@ -39,8 +40,7 @@ SOURCES += \
 	eeprom.cpp \
 	serialportreader.cpp \
 	serialportwriter.cpp \
-	memorycomm.cpp \
-	sigwatch.cpp
+        memorycomm.cpp
 
 HEADERS += \
 	app.h \
@@ -48,9 +48,19 @@ HEADERS += \
 	eeprom.h \
 	serialportreader.h \
 	serialportwriter.h \
-	memorycomm.h \
-	sigwatch.h
+        memorycomm.h
 
+unix {
+    SOURCES += sigwatch.cpp
+    HEADERS += sigwatch.h
+    CONFIG(release, debug|release): \
+        CONFIG += staticlib
+}
+
+win32 {
+    SOURCES += signalhandler.cpp
+    HEADERS += signalhandler.h
+}
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

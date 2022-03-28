@@ -29,10 +29,11 @@ public:
 		ST_INIT,
 		ST_IDLE,
 		ST_MEMID,
-		ST_PING,
+		ST_WAIT_PING,
 		ST_WAIT_READMEM,
 		ST_WAIT_WRITEMEM
 	};
+
 
 private slots:
 	void handleTimeout(void);
@@ -66,6 +67,7 @@ private:
 	void setSignals();
 	bool doSomething();
 	void retryConnection();
+	void retryOperation(operations_e);
 };
 
 // m_ = member

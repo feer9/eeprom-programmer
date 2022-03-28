@@ -151,6 +151,7 @@ App::~App() {
 
 }
 
+
 const QString &App::getOutputFilename() const
 {
 	return m_filename_out;

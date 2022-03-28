@@ -22,6 +22,7 @@
 
 void App::reconnect()
 {
+	qDebug() << "App::reconnect()";
 	m_xferState = ST_DISCONNECTED;
 	m_connected = false;
 	handleXfer(nullptr);
@@ -33,12 +34,9 @@ void App::handleTimeout(void) {
 }
 
 void App::pingTimerLoop(void) {
-/*	if(m_xferState == ST_IDLE && m_currentOperation == OP_NONE)
-	{
-		sendCommand_ping();
-		m_xferState = ST_PING;
-	}*/
-	setNextOperation(OP_PING);
+	if(m_currentOperation == OP_NONE && m_nextOperation == OP_NONE) {
+		setNextOperation(OP_PING);
+	}
 	handleXfer(nullptr);
 }
 
@@ -48,7 +46,7 @@ void App::printError(pkgdata_t *pkg)
 		m_standardOutput << "Unknown error from uC" << Qt::endl;
 	else {
 		char c_err = pkg->data[0];
-		errorcode_e err = errorcode_e(c_err);
+		errorcode_e err = static_cast<errorcode_e>(c_err);
 		m_standardOutput << "uC ERROR " << EEPROM::getErrorMsg(err) << Qt::endl;
 	}
 }
@@ -65,14 +63,14 @@ bool App::doSomething()
 	switch(m_nextOperation)
 	{
 	case OP_RX:
-		m_currentOperation = m_nextOperation;
 		m_xferState = ST_WAIT_READMEM;
+		m_currentOperation = OP_RX;
 		readMem();
 		break;
 
 	case OP_TX:
-		m_currentOperation = m_nextOperation;
 		m_xferState = ST_WAIT_WRITEMEM;
+		m_currentOperation = OP_TX;
 		if(!App::writeMem()) {
 			m_currentOperation = OP_NONE;
 			m_xferState = ST_IDLE;
@@ -81,21 +79,21 @@ bool App::doSomething()
 		break;
 
 	case OP_PING:
-		m_xferState = ST_PING;
-		sendCommand_ping();
-		break;
-
 	case OP_NONE:
+		m_xferState = ST_WAIT_PING;
+		m_currentOperation = OP_PING;
+		sendCommand_ping();
+	//	m_pingTimer.start();
 		break;
 
 	default:
 		m_standardOutput << "Invalid operation." << Qt::endl;
+		m_currentOperation = OP_NONE;
 		break;
 	}
 
 	// clean "Next" flag
 	m_nextOperation = OP_NONE;
-
 
 	// return true if we're gonna do something
 	return m_currentOperation != OP_NONE;
@@ -106,11 +104,23 @@ void App::retryConnection()
 	clearBuffers();
 	m_xferState = ST_DISCONNECTED;
 	m_connected = false;
-	QTimer::singleShot(1000, this, &App::reconnect);
+//	QTimer::singleShot(1000, this, &App::reconnect);
+}
+
+void App::retryOperation(operations_e op)
+{
+	m_currentOperation = OP_NONE;
+	setNextOperation(op);
+	doSomething();
 }
 
 void App::handleXfer(pkgdata_t *pkg) {
-	// TODO: handle error packages
+	// TODO: improve handle of error packages?
+
+	static bool busy = false;
+	if(busy) // make sure no stupid shit happen
+		return;
+	busy = true;
 
 	switch(m_xferState)
 	{
@@ -143,6 +153,7 @@ void App::handleXfer(pkgdata_t *pkg) {
 
 		if(pkg->cmd == CMD_OK) {
 			m_xferState = ST_IDLE;
+			m_currentOperation = OP_NONE;
 			doSomething();
 		}
 		else {
@@ -155,13 +166,14 @@ void App::handleXfer(pkgdata_t *pkg) {
 		doSomething();
 		break;
 
-	case ST_PING: // waiting for ping answer
+	case ST_WAIT_PING: // waiting for ping answer
 
 		if(!pkg)
 			break;
 
 		if(pkg->cmd == CMD_TXRX_ACK) {
 			m_standardOutput << "Ping." << Qt::endl;
+			m_currentOperation = OP_NONE;
 			m_xferState = ST_IDLE;
 		}
 		else {
@@ -175,21 +187,19 @@ void App::handleXfer(pkgdata_t *pkg) {
 		if(!pkg)
 			break;
 
-		m_currentOperation = OP_NONE;
 		if(pkg->cmd == CMD_MEMDATA) {
 			// finished receiving memory data
 			m_memBuffer = pkg->data;
 			printData();
 			saveData();
 			m_xferState = ST_IDLE;
+			m_currentOperation = OP_NONE;
 			QTimer::singleShot(50, qApp, SLOT(quit()));
 		}
 		else {
 			printError(pkg);
-			setNextOperation(OP_RX);
-			doSomething();
+			retryOperation(OP_RX);
 		}
-//		clearBuffers();
 		break;
 
 	case ST_WAIT_WRITEMEM: // requested eeprom full write - waiting confirmation
@@ -197,23 +207,22 @@ void App::handleXfer(pkgdata_t *pkg) {
 		if(!pkg)
 			break;
 
-		m_currentOperation = OP_NONE;
 		if(pkg->cmd == CMD_TXRX_DONE) {
 			m_standardOutput << "Memory write SUCCESSFULLY" << Qt::endl;
 			m_xferState = ST_IDLE;
+			m_currentOperation = OP_NONE;
 			QTimer::singleShot(50, qApp, SLOT(quit()));
 		}
 		else {
 			printError(pkg);
-			setNextOperation(OP_TX);
-			doSomething();
+			retryOperation(OP_TX);
 		}
-//		clearBuffers();
 		break;
 
 	default:
 		while(1); // catch the bug :-)
 	}
+	busy = false;
 }
 // TODO: split into simple methods
 

@@ -8,18 +8,25 @@
 #include <QCoreApplication>
 
 #ifdef _WIN32
+#include "signalhandler.h"
 #define SERIALPORTNAME "COM0"
 #else
 #define SERIALPORTNAME "ttyACM0"
 #endif
 
 
-class MemoryComm : public QCoreApplication, public EEPROM
+class MemoryComm
+		: public QCoreApplication
+		, public EEPROM
+#ifdef _WIN32
+		, public SignalHandler
+#endif
 {
 	Q_OBJECT
 public:
 	explicit MemoryComm(int &argc, char **argv, FILE* outStream);
 	~MemoryComm();
+	bool handleSignal(int signal);
 
 	SerialPortWriter& getSerialPortWriter(void) {return m_serialPortWriter;};
 	SerialPortReader& getSerialPortReader(void) {return m_serialPortReader;};
@@ -80,7 +87,7 @@ private slots:
 	void handleRxCrcError(void);
 
 	void handlePackageSent(commands_e cmd);
-//	void handleTxXferComplete(int status);
+	void handleAppQuit(void);
 
 
 	// Member variables definitions:

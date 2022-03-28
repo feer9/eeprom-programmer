@@ -216,7 +216,7 @@ void uart_fsm(void)
 
 	if(st != 0 && HAL_GetTick() > timeout) {
 
-			sendErr(ERROR_TIMEOUT);
+	//		sendErr(ERROR_TIMEOUT);
 			st = 0;
 
 	}

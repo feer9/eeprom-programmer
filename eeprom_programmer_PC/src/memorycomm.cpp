@@ -44,6 +44,9 @@ void MemoryComm::setSignals()
 
 	connect(&m_serialPortWriter, &SerialPortWriter::packageSent,
 						   this, &MemoryComm::handlePackageSent);
+
+	connect(               qApp, &QCoreApplication::aboutToQuit,
+						   this, &MemoryComm::handleAppQuit);
 }
 
 
@@ -59,22 +62,52 @@ void MemoryComm::setSerialPortOptions(SerialPortOptions& op)
 
 MemoryComm::~MemoryComm()
 {
+	qDebug() << "MemoryComm destructor.";
+
 	if(m_serialPort.isOpen()) {
-		qDebug() <<  "SerialPort connected. Sending CMD_DISCONNECT...";
+		qDebug() << "SerialPort is still open.";
+		m_serialPort.close();
+	}
+}
+
+void MemoryComm::handleAppQuit()
+{
+	qDebug() << "MemoryComm::HandleAppQuit()";
+	if(m_serialPort.isOpen()) {
+		qDebug() << "SerialPort connected. Sending CMD_DISCONNECT...";
 		sendCommand(CMD_DISCONNECT);
-		m_serialPort.waitForBytesWritten(500);
+		while( m_serialPortWriter.busy() == true
+			&& m_serialPort.waitForBytesWritten(5000) != false);
+		// TODO: this doesn't seems to return on time on linux.
+		// Nor does the signal bytesWritten get emmited.
 		m_serialPort.close();
 	}
 	else {
 		qDebug() << "SerialPort not connected.";
 	}
+//	MemoryComm::quit();
 }
+
+#ifdef _WIN32
+bool MemoryComm::handleSignal(int signal)
+{
+	qDebug() << "Handling signal " << signal;
+	if(signal & DEFAULT_SIGNALS) {
+		QTimer::singleShot(0, qApp, SLOT(quit()));
+		// The thread is going to stop soon, so don't propagate this signal further
+		return true;
+	}
+	else {
+		// Let the signal propagate as though we had not been there
+		return false;
+	}
+}
+#endif
 
 void MemoryComm::clearBuffers() {
 	m_serialPortReader.clearBuffer();
 	m_buffer.clear();
 }
-
 
 bool MemoryComm::sendCommand(commands_e cmd, uint8_t data) {
 	return sendCommand(cmd, QByteArray(1, char(data)));
@@ -221,7 +254,7 @@ void MemoryComm::handlePackageReceived(package_t *pkg)
 			if(pkg->cmd == CMD_MEMDATA)
 			{
 				m_buffer.append((char*)(pkg->data), pkg->datalen);
-				qDebug("Received %d bytes out of %d", m_buffer.size(), m_memsize);
+				qDebug("Received %lld bytes out of %d", m_buffer.size(), m_memsize);
 				if(m_buffer.size() < m_memsize) {
 					sendCommand(CMD_TXRX_ACK);
 					m_pending.append(CMD_READNEXT);
@@ -291,7 +324,6 @@ void MemoryComm::setPackageError(package_t *pkg, errorcode_e err)
 
 void MemoryComm::packageReady(package_t *pkg)
 {
-	// hasta acá el paquete llega bien.
 	m_pkg.cmd = pkg->cmd;
 	QByteArray data((char*)(pkg->data), pkg->datalen);
 	m_pkg.data = data;
