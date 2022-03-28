@@ -1,5 +1,0 @@
-.qmake.stash
-*.o
-*.cpp
-*.h
-Makefile 
