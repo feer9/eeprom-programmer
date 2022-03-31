@@ -2,57 +2,29 @@
 #include <assert.h>
 #include <set>
 
-#ifndef _WIN32
-
-#include <signal.h>
-
-#else
-
 #include <windows.h>
-
-#endif //!_WIN32
 
 // There can be only ONE SignalHandler per process
 SignalHandler* g_handler(NULL);
-
-#ifdef _WIN32
 
 BOOL WINAPI WIN32_handleFunc(DWORD);
 int WIN32_physicalToLogical(DWORD);
 DWORD WIN32_logicalToPhysical(int);
 std::set<int> g_registry;
 
-#else //_WIN32
-
-void POSIX_handleFunc(int);
-int POSIX_physicalToLogical(int);
-int POSIX_logicalToPhysical(int);
-
-#endif //_WIN32
-
 SignalHandler::SignalHandler(int mask) : _mask(mask)
 {
 	assert(g_handler == NULL);
 	g_handler = this;
 
-#ifdef _WIN32
 	SetConsoleCtrlHandler(WIN32_handleFunc, TRUE);
-#endif //_WIN32
 
 	for (int i=0;i<numSignals;i++)
 	{
 		int logical = 0x1 << i;
 		if (_mask & logical)
 		{
-#ifdef _WIN32
 			g_registry.insert(logical);
-#else
-			int sig = POSIX_logicalToPhysical(logical);
-			bool failed = signal(sig, POSIX_handleFunc) == SIG_ERR;
-			assert(!failed);
-			(void)failed; // Silence the warning in non _DEBUG; TODO: something better
-
-#endif //_WIN32
 		}
 	}
 
@@ -60,22 +32,9 @@ SignalHandler::SignalHandler(int mask) : _mask(mask)
 
 SignalHandler::~SignalHandler()
 {
-#ifdef _WIN32
 	SetConsoleCtrlHandler(WIN32_handleFunc, FALSE);
-#else
-	for (int i=0;i<numSignals;i++)
-	{
-		int logical = 0x1 << i;
-		if (_mask & logical)
-		{
-			signal(POSIX_logicalToPhysical(logical), SIG_DFL);
-		}
-	}
-#endif //_WIN32
 }
 
-
-#ifdef _WIN32
 DWORD WIN32_logicalToPhysical(int signal)
 {
 	switch (signal)
@@ -87,25 +46,7 @@ DWORD WIN32_logicalToPhysical(int signal)
 		return ~(unsigned int)0; // SIG_ERR = -1
 	}
 }
-#else
-int POSIX_logicalToPhysical(int signal)
-{
-	switch (signal)
-	{
-	case SignalHandler::SIG_INT: return SIGINT;
-	case SignalHandler::SIG_TERM: return SIGTERM;
-	// In case the client asks for a SIG_CLOSE handler, accept and
-	// bind it to a SIGTERM. Anyway the signal will never be raised
-	case SignalHandler::SIG_CLOSE: return SIGTERM;
-	case SignalHandler::SIG_RELOAD: return SIGHUP;
-	default:
-		return -1; // SIG_ERR = -1
-	}
-}
-#endif //_WIN32
 
-
-#ifdef _WIN32
 int WIN32_physicalToLogical(DWORD signal)
 {
 	switch (signal)
@@ -117,23 +58,7 @@ int WIN32_physicalToLogical(DWORD signal)
 		return SignalHandler::SIG_UNHANDLED;
 	}
 }
-#else
-int POSIX_physicalToLogical(int signal)
-{
-	switch (signal)
-	{
-	case SIGINT: return SignalHandler::SIG_INT;
-	case SIGTERM: return SignalHandler::SIG_TERM;
-	case SIGHUP: return SignalHandler::SIG_RELOAD;
-	default:
-		return SignalHandler::SIG_UNHANDLED;
-	}
-}
-#endif //_WIN32
 
-
-
-#ifdef _WIN32
 BOOL WINAPI WIN32_handleFunc(DWORD signal)
 {
 	if (g_handler)
@@ -157,13 +82,3 @@ BOOL WINAPI WIN32_handleFunc(DWORD signal)
 		return FALSE;
 	}
 }
-#else
-void POSIX_handleFunc(int signal)
-{
-	if (g_handler)
-	{
-		int signo = POSIX_physicalToLogical(signal);
-		g_handler->handleSignal(signo);
-	}
-}
-#endif //_WIN32
