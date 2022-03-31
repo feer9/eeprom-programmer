@@ -56,4 +56,7 @@ Run `eeprom-programmer -h` to get command line options
 
 ### Special thanks
 'sijk' for his implementation on Unix signals in Qt  
-https://github.com/sijk/qt-unix-signals
+https://github.com/sijk/qt-unix-signals  
+  
+'user948581' on Stack Overflow for his implementation on Windows signals handler  
+https://stackoverflow.com/questions/7581343/how-to-catch-ctrlc-on-windows-and-linux-with-qt
