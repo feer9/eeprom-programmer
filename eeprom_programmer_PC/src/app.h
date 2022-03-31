@@ -10,6 +10,8 @@
 #include <QCommandLineParser>
 #include <QFile>
 
+#define APP_VERSION_STRING "2.0.0"
+
 class App: public MemoryComm
 {
 

@@ -65,7 +65,7 @@ void App::setSignals()
 void App::setCommandLineOptions(QCommandLineParser& parser)
 {
 	App::setApplicationName("EEPROM Programmer");
-	App::setApplicationVersion("2.0-rc1");
+	App::setApplicationVersion(APP_VERSION_STRING);
 	parser.setApplicationDescription("Read and write EEPROM memories.");
 
 	parser.addOption({{"h", "help"},
